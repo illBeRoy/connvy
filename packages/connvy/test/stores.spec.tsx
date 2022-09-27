@@ -740,17 +740,109 @@ describe('Connvy Stores', () => {
     });
 
     describe('Minimal re-rendering', () => {
-      it.todo(
-        'should cause components to re-render if they are using useStore directly with the affected store'
-      );
+      type UseTodoStoreHook = UseStoreHook<
+        ReturnType<typeof todosStore['schema']>
+      >;
 
-      it.todo(
-        'should not cause components to re-render if they are using useStore, but with another store'
-      );
+      type UseBaglesStoreHook = UseStoreHook<
+        ReturnType<typeof baglesStore['schema']>
+      >;
 
-      it.todo(
-        'should cause components to re-render if they are not using useStore at all'
-      );
+      const baglesStore = createStore({
+        name: 'bagles',
+        schema: ($) => ({ fresh: $.boolean() }),
+      });
+
+      const renderReactApp = () => {
+        let componentWithTodoStoreRenders = 0;
+        let todos: UseTodoStoreHook;
+        const ComponentWithTodosStore = () => {
+          todos = useStore(todosStore);
+          componentWithTodoStoreRenders += 1;
+          return <div>You rendered {componentWithTodoStoreRenders} times</div>;
+        };
+
+        let componentWithBaglesStoreRenders = 0;
+        let bagles: UseBaglesStoreHook;
+        const ComponentWithBaglesStore = () => {
+          bagles = useStore(baglesStore);
+          componentWithBaglesStoreRenders += 1;
+          return <div>You rendered {componentWithTodoStoreRenders} times</div>;
+        };
+
+        let componentWithoutStoresRenders = 0;
+        const ComponentWithoutStores = () => {
+          componentWithoutStoresRenders += 1;
+          return <div>You rendered {componentWithTodoStoreRenders} times</div>;
+        };
+
+        render(
+          <ConnvyProvider>
+            <ComponentWithTodosStore />
+            <ComponentWithBaglesStore />
+            <ComponentWithoutStores />
+          </ConnvyProvider>
+        );
+
+        return {
+          ComponentWithTodosStore: {
+            rerenders: () => componentWithTodoStoreRenders - 1,
+          },
+          ComponentWithBaglesStore: {
+            rerenders: () => componentWithBaglesStoreRenders - 1,
+          },
+          ComponentWithoutStores: {
+            rerenders: () => componentWithoutStoresRenders - 1,
+          },
+          // @ts-expect-error: that's ok, we expect todos to have been populated by the component
+          todos,
+          // @ts-expect-error: that's ok, we expect bagles to have been populated by the component
+          bagles,
+        };
+      };
+
+      it('should cause components to re-render if they are using useStore directly with the affected store', () => {
+        const { ComponentWithTodosStore, todos } = renderReactApp();
+
+        act(() => {
+          todos.create({
+            title: Chance().sentence(),
+            checked: Chance().bool(),
+          });
+        });
+
+        expect(ComponentWithTodosStore.rerenders()).toBe(1);
+      });
+
+      it('should not cause components to re-render if they are using useStore, but with another store', () => {
+        const { ComponentWithBaglesStore, todos } = renderReactApp();
+
+        act(() => {
+          todos.create({
+            title: Chance().sentence(),
+            checked: Chance().bool(),
+          });
+        });
+
+        expect(ComponentWithBaglesStore.rerenders()).toBe(0);
+      });
+
+      it('should cause components to re-render if they are not using useStore at all', () => {
+        const { ComponentWithoutStores, todos, bagles } = renderReactApp();
+
+        act(() => {
+          todos.create({
+            title: Chance().sentence(),
+            checked: Chance().bool(),
+          });
+        });
+
+        act(() => {
+          bagles.create({ fresh: true });
+        });
+
+        expect(ComponentWithoutStores.rerenders()).toBe(0);
+      });
     });
   });
 });
