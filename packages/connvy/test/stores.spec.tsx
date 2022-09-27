@@ -1,7 +1,13 @@
 import React from 'react';
 import Chance from 'chance';
 import { act, fireEvent, render } from '@testing-library/react';
-import { ConnvyProvider, createStore, EntityType, useStore } from '../src';
+import {
+  ConnvyProvider,
+  createStore,
+  EntityType,
+  useStore,
+  UseStoreHook,
+} from '../src';
 
 describe('Connvy Stores', () => {
   const todosStore = createStore({
@@ -462,7 +468,7 @@ describe('Connvy Stores', () => {
     });
   });
 
-  describe('Defining and using stores in React', () => {
+  describe('Using stores in React applications', () => {
     describe('Basic usage', () => {
       it('should allow using stores from react applications via the "useStore" hook', () => {
         const TodosApp = () => {
@@ -523,16 +529,214 @@ describe('Connvy Stores', () => {
     });
 
     describe('When should component re-render', () => {
-      it.todo('should rerender when using "create"');
-      it.todo('should rerender when using "update"');
-      it.todo('should rerender when using "updateAllWhere"');
-      it.todo('should rerender when using "delete"');
-      it.todo('should rerender when using "deleteAllWhere"');
+      type UseTodoStoreHook = UseStoreHook<
+        ReturnType<typeof todosStore['schema']>
+      >;
 
-      it.todo('should not rerender when using "get"');
-      it.todo('should not rerender when using "getBy"');
-      it.todo('should not rerender when using "list"');
-      it.todo('should not rerender when using "listBy"');
+      const renderReactApp = () => {
+        let timesRendered = 0;
+        let todos: UseTodoStoreHook;
+
+        const TodosApp = () => {
+          todos = useStore(todosStore);
+          timesRendered += 1;
+          return <div>You rendered {timesRendered} times</div>;
+        };
+
+        render(
+          <ConnvyProvider>
+            <TodosApp />
+          </ConnvyProvider>
+        );
+
+        // @ts-expect-error: that's ok, we expect todos to have been populated by the component
+        return [todos, () => timesRendered - 1] as const;
+      };
+
+      it('should rerender when using "create"', () => {
+        const [todos, timesReRendered] = renderReactApp();
+
+        act(() => {
+          todos.create({
+            title: Chance().sentence(),
+            checked: Chance().bool(),
+          });
+        });
+
+        expect(timesReRendered()).toBe(1);
+      });
+
+      it('should rerender when using "update"', () => {
+        const [todos, timesReRendered] = renderReactApp();
+
+        act(() => {
+          todos.create({
+            title: Chance().sentence(),
+            checked: Chance().bool(),
+          });
+        });
+
+        act(() => {
+          todos.update(0, {
+            title: Chance().sentence(),
+            checked: Chance().bool(),
+          });
+        });
+
+        expect(timesReRendered()).toBe(2);
+      });
+
+      it('should rerender when using "updateAllWhere"', () => {
+        const [todos, timesReRendered] = renderReactApp();
+
+        act(() => {
+          todos.create({
+            title: Chance().sentence(),
+            checked: false,
+          });
+        });
+
+        act(() => {
+          todos.updateAllWhere((todo) => !todo.checked, {
+            title: Chance().sentence(),
+            checked: Chance().bool(),
+          });
+        });
+
+        expect(timesReRendered()).toBe(2);
+      });
+
+      it('should not rerender when using "updateAllWhere", if nothing was changed', () => {
+        const [todos, timesReRendered] = renderReactApp();
+
+        act(() => {
+          todos.create({
+            title: Chance().sentence(),
+            checked: false,
+          });
+        });
+
+        act(() => {
+          todos.updateAllWhere(() => false, {
+            title: Chance().sentence(),
+            checked: Chance().bool(),
+          });
+        });
+
+        expect(timesReRendered()).toBe(1);
+      });
+
+      it('should rerender when using "delete"', () => {
+        const [todos, timesReRendered] = renderReactApp();
+
+        act(() => {
+          todos.create({
+            title: Chance().sentence(),
+            checked: Chance().bool(),
+          });
+        });
+
+        act(() => {
+          todos.delete(0);
+        });
+
+        expect(timesReRendered()).toBe(2);
+      });
+
+      it('should rerender when using "deleteAllWhere"', () => {
+        const [todos, timesReRendered] = renderReactApp();
+
+        act(() => {
+          todos.create({
+            title: Chance().sentence(),
+            checked: false,
+          });
+        });
+
+        act(() => {
+          todos.deleteAllWhere((todo) => !todo.checked);
+        });
+
+        expect(timesReRendered()).toBe(2);
+      });
+
+      it('should not rerender when using "deleteAllWhere", if nothing was changed', () => {
+        const [todos, timesReRendered] = renderReactApp();
+
+        act(() => {
+          todos.create({
+            title: Chance().sentence(),
+            checked: false,
+          });
+        });
+
+        act(() => {
+          todos.deleteAllWhere(() => false);
+        });
+
+        expect(timesReRendered()).toBe(1);
+      });
+
+      it('should not rerender when using "get"', () => {
+        const [todos, timesReRendered] = renderReactApp();
+
+        act(() => {
+          todos.create({
+            title: Chance().sentence(),
+            checked: Chance().bool(),
+          });
+        });
+
+        act(() => {
+          todos.get(0);
+        });
+
+        expect(timesReRendered()).toBe(1);
+      });
+
+      it('should not rerender when using "getBy"', () => {
+        const [todos, timesReRendered] = renderReactApp();
+
+        act(() => {
+          todos.create({
+            title: Chance().sentence(),
+            checked: true,
+          });
+        });
+
+        act(() => {
+          todos.getBy((todo) => todo.checked);
+        });
+
+        expect(timesReRendered()).toBe(1);
+      });
+
+      it('should not rerender when using "list"', () => {
+        const [todos, timesReRendered] = renderReactApp();
+
+        act(() => {
+          todos.list();
+        });
+
+        expect(timesReRendered()).toBe(0);
+      });
+
+      it('should not rerender when using "listBy"', () => {
+        const [todos, timesReRendered] = renderReactApp();
+
+        act(() => {
+          todos.create({
+            title: Chance().sentence(),
+            checked: true,
+          });
+        });
+
+        act(() => {
+          todos.listBy((todo) => todo.checked);
+        });
+
+        expect(timesReRendered()).toBe(1);
+      });
     });
 
     describe('Minimal re-rendering', () => {

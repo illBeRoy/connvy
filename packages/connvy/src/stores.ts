@@ -81,6 +81,8 @@ export class StoreStateContainer<TSchema extends z.ZodRawShape> {
     });
 
     this.collection[i] = updatedItem;
+    this.eventEmitter.emit('stateChanged');
+
     return updatedItem;
   }
 
@@ -88,21 +90,26 @@ export class StoreStateContainer<TSchema extends z.ZodRawShape> {
     matcher: (item: z.infer<typeof this.schema>) => boolean,
     updates: Partial<z.infer<typeof this.schema>>
   ): number {
-    let affectedRows = 0;
+    let affectedItems = 0;
 
     this.collection.forEach((item, i) => {
       if (matcher(item)) {
         this.collection[i] = this.schema.parse({ ...item, ...updates });
-        affectedRows += 1;
+        affectedItems += 1;
       }
     });
 
-    return affectedRows;
+    if (affectedItems > 0) {
+      this.eventEmitter.emit('stateChanged');
+    }
+
+    return affectedItems;
   }
 
   delete(i: number) {
     if (i in this.collection) {
       this.collection.splice(i, 1);
+      this.eventEmitter.emit('stateChanged');
     } else {
       throw new Error(
         `Could not delete item at index ${i} (collection has ${this.collection.length} items, and the index we use in "delete" is zero-based)`
@@ -113,17 +120,21 @@ export class StoreStateContainer<TSchema extends z.ZodRawShape> {
   deleteAllWhere(
     matcher: (item: z.infer<typeof this.schema>) => boolean
   ): number {
-    let affectedRows = 0;
+    let affectedItems = 0;
 
     for (let i = 0; i < this.collection.length; i += 1) {
       if (matcher(this.collection[i])) {
         this.collection.splice(i, 1);
         i -= 1;
-        affectedRows += 1;
+        affectedItems += 1;
       }
     }
 
-    return affectedRows;
+    if (affectedItems > 0) {
+      this.eventEmitter.emit('stateChanged');
+    }
+
+    return affectedItems;
   }
 
   on(event: 'stateChanged', cb: () => void) {
