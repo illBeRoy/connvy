@@ -54,6 +54,7 @@ yarn add connvy
 
 The next thing you would need to do in order to set up, is to add the connvy provider to your App component:
 
+*App.jsx**
 ```jsx
 import { ConnvyProvider } from 'connvy';
 
@@ -335,7 +336,7 @@ todos.update(0, { isChecked: true }); // updates the first item in the store. th
 todos.updateAllWhere(todo => !todo.isChecked, { isChecked: true }); // updates all items that match the criteria. throws if does not exist
 
 todos.delete(0); // deletes the first item in the store
-todos.deleteAllBy(todo => todo.isChecked) // deletes all items that match the criteria
+todos.deleteAllWhere(todo => todo.isChecked) // deletes all items that match the criteria
 
 todos.replace([{ title: 'my first todo!', isChecked: false }]); // replaces all existing data in the store with the provided array. highly destructive, but useful in case where you want to sync it to another source, such as the server
 ```
