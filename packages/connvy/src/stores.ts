@@ -12,6 +12,11 @@ export type PublicStoreAPI<TSchema extends Record<string, any> = any> = Omit<
   'on' | 'off'
 >;
 
+export type ReadonlyStoreAPI<TSchema extends Record<string, any> = any> = Omit<
+  PublicStoreAPI<TSchema>,
+  'create' | 'update' | 'updateAllWhere' | 'delete' | 'deleteAllWhere'
+>;
+
 export class StoreStateContainer<TSchema extends z.ZodRawShape> {
   private readonly collection: z.infer<z.ZodObject<TSchema>>[] = [];
   private readonly eventEmitter = EventEmitter();
