@@ -7,6 +7,11 @@ export interface Store<TSchema extends z.ZodRawShape = z.ZodRawShape> {
   create(): StoreStateContainer<TSchema>;
 }
 
+export type PublicStoreAPI<TSchema extends Record<string, any> = any> = Omit<
+  StoreStateContainer<TSchema>,
+  'on' | 'off'
+>;
+
 export class StoreStateContainer<TSchema extends z.ZodRawShape> {
   private readonly collection: z.infer<z.ZodObject<TSchema>>[] = [];
   private readonly eventEmitter = EventEmitter();

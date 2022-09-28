@@ -6,7 +6,7 @@ import {
   createStore,
   EntityType,
   useStore,
-  UseStoreHook,
+  PublicStoreAPI,
 } from '../src';
 
 describe('Connvy Stores', () => {
@@ -529,7 +529,7 @@ describe('Connvy Stores', () => {
     });
 
     describe('When should component re-render', () => {
-      type UseTodoStoreHook = UseStoreHook<
+      type UseTodoStoreHook = PublicStoreAPI<
         ReturnType<typeof todosStore['schema']>
       >;
 
@@ -740,11 +740,11 @@ describe('Connvy Stores', () => {
     });
 
     describe('Minimal re-rendering', () => {
-      type UseTodoStoreHook = UseStoreHook<
+      type UseTodoStoreHook = PublicStoreAPI<
         ReturnType<typeof todosStore['schema']>
       >;
 
-      type UseBaglesStoreHook = UseStoreHook<
+      type UseBaglesStoreHook = PublicStoreAPI<
         ReturnType<typeof baglesStore['schema']>
       >;
 

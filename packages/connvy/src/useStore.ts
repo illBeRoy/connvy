@@ -1,15 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useConnvy } from './provider';
-import { Store, StoreStateContainer } from './stores';
-
-export type UseStoreHook<TSchema extends Record<string, any>> = Omit<
-  StoreStateContainer<TSchema>,
-  'on' | 'off'
->;
+import { PublicStoreAPI, Store } from './stores';
 
 export const useStore = <TSchema extends Record<string, any>>(
   store: Store<TSchema>
-): UseStoreHook<TSchema> => {
+): PublicStoreAPI<TSchema> => {
   const connvy = useConnvy();
   const storeStateContainer = connvy.getStoreStateContainer(store);
 

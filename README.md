@@ -174,7 +174,7 @@ import { createSelector } from 'connvy';
 import { todoStore } from '../stores/todo';
 import { userStore } from '../stores/user';
 
-export const listUserTodos = createSelector({ todoStore, userStore }, (userName, { todoStore, userStore }) => {
+export const listUserTodos = createSelector({ todoStore, userStore }, ({ todoStore, userStore }, userName) => {
   const user = userStore.getBy(user => user.userName === userName);
   const userTodos = todoStore.listBy(todo => todo.userId === user.id);
   return userTodos;
@@ -183,7 +183,7 @@ export const listUserTodos = createSelector({ todoStore, userStore }, (userName,
 
 The selector has two main parameters:
 1. The list of stores it depends on (passed as object) - in our case, `todoStore` and `userStore`
-2. The function itself. It can accept any list of parameters you decide (in our case, `userName`), but the last parameter will always be the same stores that you depended upon.
+2. The function itself. It can accept any list of parameters you decide (in our case, `userName`), but the first parameter will always be the same stores that you depended upon.
 
 And then use it in your component like that:
 *components/UserTodosSection.jsx*
@@ -192,7 +192,7 @@ import { useSelector } from 'connvy';
 import { listUserTodos } from '../selectors/listUserTodos';
 
 export function UserTodosSection({ userName }) {
-  const [userTodos] = useSelector(userName); // not that userTodos is wrapped with brackets. this is intentional and we'll go over it soon
+  const [userTodos] = useSelector(listUserTodos(userName)); // not that userTodos is wrapped with brackets. this is intentional and we go over the reason in the API chapter about selectors
 
   return (
     <ul>
@@ -220,7 +220,7 @@ For instance, let's say that every new todo is unchecked by default. We can crea
 import { createAction } from 'connvy';
 import { todoStore } from '../stores/todo';
 
-export const createTodo = createAction('createTodo', { todoStore }, (title, { todoStore }) => {
+export const createTodo = createAction('createTodo', { todoStore }, ({ todoStore }, title) => {
   todoStore.create({ title, isChecked: false  });
 });
 ```
@@ -228,7 +228,7 @@ export const createTodo = createAction('createTodo', { todoStore }, (title, { to
 As with selectors, we use the `createAction` constructor, where:
 1. The first parameter is the name of the action (we can see what it's used for soon)
 2. The second is the stores it operates upon (same as we do with selectors)
-3. The third is the implementation function, where again: it can accept any list of parameters you decide (in our case, `title`), but the last parameter will always be the stores you operate upon.
+3. The third is the implementation function, where again: it can accept any list of parameters you decide (in our case, `title`), but the first parameter will always be the stores you operate upon.
 
 From now on, we can run `createTodo` from **anywhere**. For instance:
 
@@ -261,7 +261,7 @@ import { createAction } from 'connvy';
 import { todoStore } from '../stores/todo';
 import { userStore } from '../stores/user';
 
-export const createTodo = createAction('createTodo', { todoStore, userStore }, (title, userName { todoStore, userStore }) => {
+export const createTodo = createAction('createTodo', { todoStore, userStore }, ({ todoStore, userStore }, title, userName) => {
   const user = userStore.getBy(user => user.userName === userName);
   todoStore.create({ title, userId: user.id, isChecked: false });
 });
@@ -368,7 +368,7 @@ import { createSelector } from 'connvy';
 import { todoStore } from '../stores/todo';
 import { userStore } from '../stores/user';
 
-export const listUserTodos = createSelector({ todoStore, userStore }, (userName, { todoStore, userStore }) => {
+export const listUserTodos = createSelector({ todoStore, userStore }, ({ todoStore, userStore }, userName) => {
   const user = userStore.getBy(user => user.userName === userName);
   const userTodos = todoStore.listBy(todo => todo.userId === user.id);
   return userTodos;
@@ -393,7 +393,7 @@ import { createSelector } from 'connvy';
 import { todoStore } from '../stores/todo';
 import { userStore } from '../stores/user';
 
-export const listUserTodos = createSelector({ todoStore, userStore }, (userName, { todoStore, userStore }) => {
+export const listUserTodos = createSelector({ todoStore, userStore }, ({ todoStore, userStore }, userName) => {
   const user = userStore.getBy(user => user.userName === userName); // this can throw, if user was not found
   const userTodos = todoStore.listBy(todo => todo.userId === user.id);
   return userTodos;
@@ -434,7 +434,7 @@ Actions are operations that apply mutation to one or more stores:
 import { createAction } from 'connvy';
 import { todoStore } from '../stores/todo';
 
-export const createTodo = createAction('createTodo', { todoStore }, (title, { todoStore }) => {
+export const createTodo = createAction('createTodo', { todoStore }, ({ todoStore }, title) => {
   todoStore.create({ title, isChecked: false  });
 });
 ```
