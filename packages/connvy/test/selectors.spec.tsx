@@ -206,20 +206,19 @@ describe('Connvy Selectors', () => {
           }
         );
 
-        const { Component, error } = aComponentWithSelector(
+        const { Component } = aComponentWithSelector(
           selectorThatTriesToCreate()
         );
 
-        const component = render(
-          <ConnvyProvider>
-            <Component />
-          </ConnvyProvider>
-        );
+        const renderApp = () =>
+          render(
+            <ConnvyProvider>
+              <Component />
+            </ConnvyProvider>
+          );
 
-        expect(component.baseElement.textContent).toContain(
-          error(
-            'Stores are read-only in selectors (tried to use the "create" method)'
-          )
+        expect(renderApp).toThrow(
+          'Stores are read-only in selectors (tried to use the "create" method)'
         );
       });
 
@@ -232,20 +231,19 @@ describe('Connvy Selectors', () => {
           }
         );
 
-        const { Component, error } = aComponentWithSelector(
+        const { Component } = aComponentWithSelector(
           selectorThatTriesToUpdate()
         );
 
-        const component = render(
-          <ConnvyProvider>
-            <Component />
-          </ConnvyProvider>
-        );
+        const renderApp = () =>
+          render(
+            <ConnvyProvider>
+              <Component />
+            </ConnvyProvider>
+          );
 
-        expect(component.baseElement.textContent).toContain(
-          error(
-            'Stores are read-only in selectors (tried to use the "update" method)'
-          )
+        expect(renderApp).toThrow(
+          'Stores are read-only in selectors (tried to use the "update" method)'
         );
       });
 
@@ -258,20 +256,19 @@ describe('Connvy Selectors', () => {
           }
         );
 
-        const { Component, error } = aComponentWithSelector(
+        const { Component } = aComponentWithSelector(
           selectorThatTriesToUpdateAllWhere()
         );
 
-        const component = render(
-          <ConnvyProvider>
-            <Component />
-          </ConnvyProvider>
-        );
+        const renderApp = () =>
+          render(
+            <ConnvyProvider>
+              <Component />
+            </ConnvyProvider>
+          );
 
-        expect(component.baseElement.textContent).toContain(
-          error(
-            'Stores are read-only in selectors (tried to use the "updateAllWhere" method)'
-          )
+        expect(renderApp).toThrow(
+          'Stores are read-only in selectors (tried to use the "updateAllWhere" method)'
         );
       });
 
@@ -284,20 +281,19 @@ describe('Connvy Selectors', () => {
           }
         );
 
-        const { Component, error } = aComponentWithSelector(
+        const { Component } = aComponentWithSelector(
           selectorThatTriesToDelete()
         );
 
-        const component = render(
-          <ConnvyProvider>
-            <Component />
-          </ConnvyProvider>
-        );
+        const renderApp = () =>
+          render(
+            <ConnvyProvider>
+              <Component />
+            </ConnvyProvider>
+          );
 
-        expect(component.baseElement.textContent).toContain(
-          error(
-            'Stores are read-only in selectors (tried to use the "delete" method)'
-          )
+        expect(renderApp).toThrow(
+          'Stores are read-only in selectors (tried to use the "delete" method)'
         );
       });
 
@@ -310,20 +306,19 @@ describe('Connvy Selectors', () => {
           }
         );
 
-        const { Component, error } = aComponentWithSelector(
+        const { Component } = aComponentWithSelector(
           selectorThatTriesToDeleteAllWhere()
         );
 
-        const component = render(
-          <ConnvyProvider>
-            <Component />
-          </ConnvyProvider>
-        );
+        const renderApp = () =>
+          render(
+            <ConnvyProvider>
+              <Component />
+            </ConnvyProvider>
+          );
 
-        expect(component.baseElement.textContent).toContain(
-          error(
-            'Stores are read-only in selectors (tried to use the "deleteAllWhere" method)'
-          )
+        expect(renderApp).toThrow(
+          'Stores are read-only in selectors (tried to use the "deleteAllWhere" method)'
         );
       });
     });

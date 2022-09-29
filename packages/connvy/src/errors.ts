@@ -2,9 +2,11 @@ export class ConnvyError extends Error {}
 
 export class NotRunningInContextError extends ConnvyError {
   constructor() {
+    // const prototype = new.target.prototype;
     super(
       'Connvy was not initialized in context. Please wrap your app with the <ConnvyProvider /> component'
     );
+    // Object.setPrototypeOf(this, prototype);
   }
 }
 

@@ -97,8 +97,15 @@ export const useSelector = <T>(
     error = err;
   }
 
-  if (result instanceof Promise) {
+  const isSelectorAsync = result instanceof Promise;
+  if (isSelectorAsync) {
     throw new SelectorCantBeAsyncError();
+  }
+
+  const isErrorAResultOfMisuse =
+    error instanceof AttemptingToWriteFromSelectorError;
+  if (isErrorAResultOfMisuse) {
+    throw error;
   }
 
   return [result, error];
