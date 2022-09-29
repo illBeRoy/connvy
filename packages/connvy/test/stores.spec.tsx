@@ -1,19 +1,10 @@
 import React from 'react';
 import Chance from 'chance';
 import { act, fireEvent, render } from '@testing-library/react';
-import {
-  ConnvyProvider,
-  createStore,
-  EntityType,
-  useStore,
-  PublicStoreAPI,
-} from '../src';
+import { ConnvyProvider, createStore, EntityType, useStore, PublicStoreAPI } from '../src';
 
 describe('Connvy Stores', () => {
-  const todosStore = createStore({
-    name: 'todos',
-    schema: ($) => ({ title: $.string(), checked: $.boolean() }),
-  });
+  const todosStore = createStore('todos', { schema: ($) => ({ title: $.string(), checked: $.boolean() }) });
 
   describe('CRUD operations', () => {
     type Todo = EntityType<typeof todosStore>;
@@ -168,9 +159,7 @@ describe('Connvy Stores', () => {
 
         expect(store.get(1, { fallback: fallbackTodo })).toEqual(fallbackTodo);
 
-        expect(
-          store.getBy((todo) => todo.checked, { fallback: fallbackTodo })
-        ).toEqual(fallbackTodo);
+        expect(store.getBy((todo) => todo.checked, { fallback: fallbackTodo })).toEqual(fallbackTodo);
       });
     });
 
@@ -271,9 +260,7 @@ describe('Connvy Stores', () => {
           const store = givenTodosStoreWithData([todo]);
 
           // @ts-expect-error: store expects our new title to be a string, but it isn't. this is ok since this is what we're trying to test here!
-          expect(() => store.update(0, { title: notAValidTitle })).toThrow(
-            'invalid_type'
-          );
+          expect(() => store.update(0, { title: notAValidTitle })).toThrow('invalid_type');
           expect(store.get(0)).toEqual(todo);
         });
 
@@ -504,15 +491,9 @@ describe('Connvy Stores', () => {
           fireEvent.click(component.getByText('Add Some Todos'));
         });
 
-        expect(component.baseElement.textContent).toContain(
-          'My First Todo (checked: true)'
-        );
-        expect(component.baseElement.textContent).toContain(
-          'My Second Todo (checked: false)'
-        );
-        expect(component.baseElement.textContent).toContain(
-          'My Third Todo (checked: false)'
-        );
+        expect(component.baseElement.textContent).toContain('My First Todo (checked: true)');
+        expect(component.baseElement.textContent).toContain('My Second Todo (checked: false)');
+        expect(component.baseElement.textContent).toContain('My Third Todo (checked: false)');
       });
 
       it('should throw during rendering if the app was not wrapped with a <ConnvyProvider /> component', () => {
@@ -529,9 +510,7 @@ describe('Connvy Stores', () => {
     });
 
     describe('When should component re-render', () => {
-      type UseTodoStoreHook = PublicStoreAPI<
-        ReturnType<typeof todosStore['schema']>
-      >;
+      type UseTodoStoreHook = PublicStoreAPI<ReturnType<typeof todosStore['schema']>>;
 
       const renderReactApp = () => {
         let timesRendered = 0;
@@ -740,18 +719,11 @@ describe('Connvy Stores', () => {
     });
 
     describe('Minimal re-rendering', () => {
-      type UseTodoStoreHook = PublicStoreAPI<
-        ReturnType<typeof todosStore['schema']>
-      >;
+      type UseTodoStoreHook = PublicStoreAPI<ReturnType<typeof todosStore['schema']>>;
 
-      type UseBaglesStoreHook = PublicStoreAPI<
-        ReturnType<typeof baglesStore['schema']>
-      >;
+      type UseBagelsStoreHook = PublicStoreAPI<ReturnType<typeof bagelsStore['schema']>>;
 
-      const baglesStore = createStore({
-        name: 'bagles',
-        schema: ($) => ({ fresh: $.boolean() }),
-      });
+      const bagelsStore = createStore('bagels', { schema: ($) => ({ fresh: $.boolean() }) });
 
       const renderReactApp = () => {
         let componentWithTodoStoreRenders = 0;
@@ -762,11 +734,11 @@ describe('Connvy Stores', () => {
           return <div>You rendered {componentWithTodoStoreRenders} times</div>;
         };
 
-        let componentWithBaglesStoreRenders = 0;
-        let bagles: UseBaglesStoreHook;
-        const ComponentWithBaglesStore = () => {
-          bagles = useStore(baglesStore);
-          componentWithBaglesStoreRenders += 1;
+        let componentWithBagelsStoreRenders = 0;
+        let bagels: UseBagelsStoreHook;
+        const ComponentWithBagelsStore = () => {
+          bagels = useStore(bagelsStore);
+          componentWithBagelsStoreRenders += 1;
           return <div>You rendered {componentWithTodoStoreRenders} times</div>;
         };
 
@@ -779,7 +751,7 @@ describe('Connvy Stores', () => {
         render(
           <ConnvyProvider>
             <ComponentWithTodosStore />
-            <ComponentWithBaglesStore />
+            <ComponentWithBagelsStore />
             <ComponentWithoutStores />
           </ConnvyProvider>
         );
@@ -788,16 +760,16 @@ describe('Connvy Stores', () => {
           ComponentWithTodosStore: {
             rerenders: () => componentWithTodoStoreRenders - 1,
           },
-          ComponentWithBaglesStore: {
-            rerenders: () => componentWithBaglesStoreRenders - 1,
+          ComponentWithBagelsStore: {
+            rerenders: () => componentWithBagelsStoreRenders - 1,
           },
           ComponentWithoutStores: {
             rerenders: () => componentWithoutStoresRenders - 1,
           },
           // @ts-expect-error: that's ok, we expect todos to have been populated by the component
           todos,
-          // @ts-expect-error: that's ok, we expect bagles to have been populated by the component
-          bagles,
+          // @ts-expect-error: that's ok, we expect bagels to have been populated by the component
+          bagels,
         };
       };
 
@@ -815,7 +787,7 @@ describe('Connvy Stores', () => {
       });
 
       it('should not cause components to re-render if they are using useStore, but with another store', () => {
-        const { ComponentWithBaglesStore, todos } = renderReactApp();
+        const { ComponentWithBagelsStore, todos } = renderReactApp();
 
         act(() => {
           todos.create({
@@ -824,11 +796,11 @@ describe('Connvy Stores', () => {
           });
         });
 
-        expect(ComponentWithBaglesStore.rerenders()).toBe(0);
+        expect(ComponentWithBagelsStore.rerenders()).toBe(0);
       });
 
       it('should cause components to re-render if they are not using useStore at all', () => {
-        const { ComponentWithoutStores, todos, bagles } = renderReactApp();
+        const { ComponentWithoutStores, todos, bagels } = renderReactApp();
 
         act(() => {
           todos.create({
@@ -838,7 +810,7 @@ describe('Connvy Stores', () => {
         });
 
         act(() => {
-          bagles.create({ fresh: true });
+          bagels.create({ fresh: true });
         });
 
         expect(ComponentWithoutStores.rerenders()).toBe(0);

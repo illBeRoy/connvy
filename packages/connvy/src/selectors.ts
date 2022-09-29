@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AttemptingToWriteFromSelectorError, SelectorCantBeAsyncError } from './errors';
 import { useConnvy } from './provider';
 import type { Store, ReadonlyStoreAPI, PublicStoreAPI } from './stores';
@@ -48,61 +48,82 @@ export const useSelector = <T>(selector: Selector<T>): [T | null, unknown | null
   const connvy = useConnvy();
   const [memoizationKey, setMemoizationKey] = useState(Math.random());
 
-  const stores: Record<string, ReadonlyStoreAPI> = {};
-  for (const [key, store] of Object.entries(selector.stores)) {
-    const storeInstance = connvy.getStoreStateContainer(store);
+  const updateMemoizationKey = () => setMemoizationKey(Math.random());
 
-    const storeInstanceThatIsReadOnly: PublicStoreAPI = {
-      get: (...args) => storeInstance.get(...args),
-      getBy: (...args) => storeInstance.getBy(...args),
-      list: (...args) => storeInstance.list(...args),
-      listBy: (...args) => storeInstance.listBy(...args),
-      create() {
-        throw new AttemptingToWriteFromSelectorError({ method: 'create' });
-      },
-      update() {
-        throw new AttemptingToWriteFromSelectorError({ method: 'update' });
-      },
-      updateAllWhere() {
-        throw new AttemptingToWriteFromSelectorError({
-          method: 'updateAllWhere',
-        });
-      },
-      delete() {
-        throw new AttemptingToWriteFromSelectorError({ method: 'delete' });
-      },
-      deleteAllWhere() {
-        throw new AttemptingToWriteFromSelectorError({
-          method: 'deleteAllWhere',
-        });
-      },
+  useEffect(function updateMemoizationKeyWhenAnyDependentStoreChanged() {
+    const allStoresForSelector = Object.values(selector.stores);
+    const allStoreInstances = allStoresForSelector.map(connvy.getStoreStateContainer);
+
+    allStoreInstances.forEach((storeInstance) => {
+      storeInstance.on('stateChanged', updateMemoizationKey);
+    });
+
+    return function onUnmount() {
+      allStoreInstances.forEach((storeInstance) => {
+        storeInstance.off('stateChanged', updateMemoizationKey);
+      });
     };
+  }, []);
 
-    stores[key] = storeInstanceThatIsReadOnly;
-  }
+  const [result, error] = useMemo(() => {
+    const stores: Record<string, ReadonlyStoreAPI> = {};
+    for (const [key, store] of Object.entries(selector.stores)) {
+      const storeInstance = connvy.getStoreStateContainer(store);
 
-  let result: T | null = null,
-    error: unknown | null = null;
-  try {
-    result = selector.select(stores);
-  } catch (err) {
-    error = err;
-  }
+      const storeInstanceThatIsReadOnly: PublicStoreAPI = {
+        get: (...args) => storeInstance.get(...args),
+        getBy: (...args) => storeInstance.getBy(...args),
+        list: (...args) => storeInstance.list(...args),
+        listBy: (...args) => storeInstance.listBy(...args),
+        create() {
+          throw new AttemptingToWriteFromSelectorError({ method: 'create' });
+        },
+        update() {
+          throw new AttemptingToWriteFromSelectorError({ method: 'update' });
+        },
+        updateAllWhere() {
+          throw new AttemptingToWriteFromSelectorError({
+            method: 'updateAllWhere',
+          });
+        },
+        delete() {
+          throw new AttemptingToWriteFromSelectorError({ method: 'delete' });
+        },
+        deleteAllWhere() {
+          throw new AttemptingToWriteFromSelectorError({
+            method: 'deleteAllWhere',
+          });
+        },
+      };
 
-  const isSelectorAsync = result instanceof Promise;
-  if (isSelectorAsync) {
-    throw new SelectorCantBeAsyncError();
-  }
+      stores[key] = storeInstanceThatIsReadOnly;
+    }
 
-  const isErrorAResultOfMisuse = error instanceof AttemptingToWriteFromSelectorError;
-  if (isErrorAResultOfMisuse) {
-    throw error;
-  }
+    let result: T | null = null,
+      error: unknown | null = null;
+    try {
+      result = selector.select(stores);
+    } catch (err) {
+      error = err;
+    }
 
-  if (error && selector.fallback !== undefined) {
-    result = selector.fallback;
-    error = null;
-  }
+    const isSelectorAsync = result instanceof Promise;
+    if (isSelectorAsync) {
+      throw new SelectorCantBeAsyncError();
+    }
+
+    const isErrorAResultOfMisuse = error instanceof AttemptingToWriteFromSelectorError;
+    if (isErrorAResultOfMisuse) {
+      throw error;
+    }
+
+    if (error && selector.fallback !== undefined) {
+      result = selector.fallback;
+      error = null;
+    }
+
+    return [result, error];
+  }, [memoizationKey, ...selector.params]);
 
   return [result, error];
 };

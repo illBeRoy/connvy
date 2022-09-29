@@ -78,7 +78,7 @@ You create a new store by defining the schema of the internal collection:
 ```js
 import { createStore } from 'connvy';
 
-export const todoStore = createStore({
+export const todoStore = createStore('todos', {
   schema: ($) => ({
     title: $.string(),
     isChecked: $.boolean(),
@@ -298,7 +298,7 @@ Stores are the backbone of every connvy application. They manage collections of 
 ```js
 import { createStore } from 'connvy';
 
-export const todoStore = createStore({
+export const todoStore = createStore('todos', {
   schema: ($) => ({
     title: $.string(),
     isChecked: $.boolean(),

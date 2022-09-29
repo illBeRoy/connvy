@@ -153,13 +153,14 @@ export class StoreStateContainer<TSchema extends z.ZodRawShape> {
   }
 }
 
-export const createStore = <TSchema extends z.ZodRawShape>({
-  name,
-  schema,
-}: {
-  name: string;
-  schema: SchemaFactory<TSchema>;
-}): Store<TSchema> => {
+export const createStore = <TSchema extends z.ZodRawShape>(
+  name: string,
+  {
+    schema,
+  }: {
+    schema: SchemaFactory<TSchema>;
+  }
+): Store<TSchema> => {
   return {
     name,
     schema,
