@@ -230,22 +230,23 @@ As with selectors, we use the `createAction` constructor, where:
 2. The second is the stores it operates upon (same as we do with selectors)
 3. The third is the implementation function, where again: it can accept any list of parameters you decide (in our case, `title`), but the first parameter will always be the stores you operate upon.
 
-From now on, we can run `createTodo` from **anywhere**. For instance:
+From now on, we can run `createTodo` from our code, using the `useAction` hook. For instance:
 
 *components/UserTodosSection.jsx*
 ```jsx
 ...
+import { useActions } from 'connvy';
 import { createTodo } from '../actions/createTodo';
 
 export function UserTodosSection({ userName }) {
-  ...
+  const actions = useActions();
 
   return (
     <div>
       <ul>
         ...
       </ul>
-      <button onClick={() => createTodo('My New Todo')} >Add Todo</button>
+      <button onClick={() => actions.run(createTodo('My New Todo'))} >Add Todo</button>
     </div>
   )
 }
@@ -275,20 +276,20 @@ Now, if we pass the username from our component, the action will take care of th
 import { createTodo } from '../actions/createTodo';
 
 export function UserTodosSection({ userName }) {
-  ...
+  const actions = useActions();
 
   return (
     <div>
       <ul>
         ...
       </ul>
-      <button onClick={() => createTodo('My New Todo', userName)}>Add Todo</button>
+      <button onClick={() => actions.run(createTodo('My New Todo', userName))}>Add Todo</button>
     </div>
   )
 }
 ```
 
-You can learn more about stores in the API chapter about [actions](#actions).
+You can learn more about actions in the API chapter about [actions](#actions).
 
 ## API
 
@@ -441,10 +442,25 @@ export const createTodo = createAction('createTodo', { todoStore }, ({ todoStore
 
 Actions should be used for any mutation, from user interactions to data sync from server. Connvy can handle both sync and async actions, and promises that no two actions can interfere with one another.
 
-In order to invoke an action, simply call it from anywhere (no hook needed):
+In order to run an action, you need to hook into the `useActions` hook from your component, and use it to your desired action:
 
 ```js
-createTodo('My New Todo');
+import { useActions } from 'connvy';
+import { createTodo } from '../actions/createTodo';
+
+export function UserTodosSection({ userName }) {
+  const actions = useActions();
+  
+  const onClick = () => {
+    actions.run(createTodo('My New Todo'));
+  }
+
+  return (
+    <div>
+      <button onClick={onClick} >Add Todo</button>
+    </div>
+  )
+}
 ```
 
 #### Async Actions
@@ -461,11 +477,21 @@ export const fetchTodosFromServer = createAction('fetchTodosFromServer', { todoS
 });
 ```
 
-Connvy knows that the action isn't finished until the async function is done running, and therefore any changes to the stores are applied only **once the action is done running**; Therefore, your components will only rerender once the action is done running (and not show "half states").
+Connvy knows that the action isn't finished until the async function is done running, and therefore any changes to the stores are applied only **once the action is done running**; Therefore, your components will only rerender once the action is done running (and not show "half states"). In addition, `actions.run` will return a promise that resolves once your action was finished, should you want to await upon it.
 
-This allows you to have peace of mind if your action is not atomic, as you will never have a situation where your component shows data from midpoint of an action.
+This also allows you to have peace of mind if your action is not atomic, as you will never have a situation where your component shows data from midpoint of an action.
 
-That said, actions do have a local copy of the stores, so any changes you make to them **are** reflected if you read the store **from within the action**. This means that, for instance, if you fetch all users, and then fetch all todos for a user, you can use `userStore.get(...)` inside the action, as it will contain the data that you stored in the users store.
+#### State Isolation During Action Execution
+While your action is running, connvy ensures complete state isolation over the affected stores. What does it mean?
+1. Any changes you make to the stores is stored locally until the action has finished successfully
+2. The stores are **locked for writing** outside of the action, meaning that no one else can `create`, `update` or `delete` any items in the affected store as long as your action is still ongoing (they will get an error)
+
+This has two benefits:
+1. Changes made to any of your stores while the action is still ongoing **are not reflected outside of it**, meaning that the stores are only updated once, after the action is done running
+2. In case you cancel the action (read about canceling actions [here](#canceling-actions)), the state is not 
+
+That said, there's one thing you need to keep in mind: if you have side effects, they still occur, even if the action is not done yet.
+Things like requests, state updates, etc. - all of them will still occur immediately even if the action is still running.
 
 #### Hooking into Action State
 Async actions might take some time to complete, during which you might want to display some feedback to the user (for instance, a loader). You can do that by using a simple hook:
@@ -473,10 +499,11 @@ Async actions might take some time to complete, during which you might want to d
 *components/UserTodosSection.jsx*
 ```jsx
 ...
-import { useActionState } from 'connvy';
+import { useActions, useActionState } from 'connvy';
 import { fetchTodosFromServer } from '../actions/fetchTodosFromServer';
 
 export function UserTodosSection({ userName }) {
+  const actions = useActions();
   const actionState = useActionState(fetchTodosFromServer);
 
   if (actionState.state === 'ONGOING') {
@@ -488,7 +515,7 @@ export function UserTodosSection({ userName }) {
       <ul>
         ...
       </ul>
-      <button onClick={() => createTodo('My New Todo', userName)}>Add Todo</button>
+      <button onClick={() => actions.run(createTodo('My New Todo', userName))}>Add Todo</button>
     </div>
   )
 }
@@ -527,35 +554,37 @@ OngoingActionError:
 You can either handle this error or ignore it (see the "Handling Errors" section), or cancel the ongoing action to make way for the new one.
 
 #### Canceling Actions
-If you have an ongoing action in place, and you want to cancel it, you can do it using one of two ways:
-
-The first is to cancel the ongoing action explicitly:
+If you have an ongoing action in place, and you want to cancel it, you can do it directly by running the `cancel` function:
 
 ```js
-import { cancelOngoingAction } from 'connvy';
+import { useActions } from 'connvy';
 
-cancelOngoingAction(); // cancels any ongoing action
-cancelOngoingAction(fetchTodosFromServer); // cancels the ongoing action only if it's fetchTodosFromServer
-cancelOngoingAction([createTodo, fetchTodosFromServer]); // cancels the ongoing action if it's either createTodo or fetchTodosFromServer
+const actions = useActions();
+actions.cancel(); // cancels any ongoing action
+actions.cancel(fetchTodosFromServer); // cancels the ongoing action only if it's fetchTodosFromServer
+actions.cancel([createTodo, fetchTodosFromServer]); // cancels the ongoing action if it's either createTodo or fetchTodosFromServer
 ```
 
-Alternatively, you can decide that the new action is more important. In which case, it will implicitly cancel any ongoing one:
+The `cancel` function can also be chained:
 
 ```js
-import { createTodo } from 'connvy';
+import { useActions } from 'connvy';
+import { createTodo } from '../actions/createTodo';
 
-createTodo.urgent().run('My First Todo', 'royso'); // using the "urgent" modifier tells connvy to implicitly cancel any ongoing action, and perform the new one instead
+const actions = useActions();
 
-createTodo.cancels(fetchTodosFromServer).run('My First Todo', 'royso'); // using the "cancels" modifier tells connvy to implicitly cancel only any of the given actions, and perform the new one instead. If the ongoing action was not specified in "cancels", an OngoingActionError is thrown as usual.
+actions.cancel().run(createTodo('My First Todo', 'royso'));
+actions.cancel(fetchTodosFromServer).run(createTodo('My First Todo', 'royso'));
+actions.cancel([createTodo, fetchTodosFromServer]).run(createTodo('My First Todo', 'royso'));
 ```
 
 Final note about canceling actions: canceling isn't something that you should use too often, for two main reasons:
 1. It makes the flow of events harder to follow
-2. Side-effects created during actions cannot be reversed
+2. While state is not committed after a canceled action, other side-effects might not be reversed
 
-The second point means that if your action has a side effect other than updating store state (e.g. save data to the server), this side effect will not be "cancelled", which might create inconsistencies.
+The second point means that if your action has a side effect other than updating store state (e.g. save data to the server, update a react state or props), this side effect will not be "cancelled", which might create inconsistencies.
 
- One way or another, in most cases, you don't need to use cancellation. If you run into many interfering actions, you might want to reconsider how they're built (for instance, consolidate actions that usually run together, or break down actions that take too long to complete). Resolving them via better design and definition is always preferable over canceling.
+One way or another, in most cases, you don't need to use cancellation. If you run into many interfering actions, you might want to reconsider how they're built (for instance, consolidate actions that usually run together, or break down actions that take too long to complete). Resolving them via better design and definition is always preferable over canceling.
 
 #### Handling Errors
 Connvy automatically catches every error thrown within the action context (async actions as well). It then does two things:
@@ -569,11 +598,11 @@ This means that you have two ways of handling errors:
 Let's see how we would handle errors by hooking into the error state:
 
 ```jsx
-...
-import { useActionState } from 'connvy';
+import { useActions, useActionState } from 'connvy';
 import { fetchTodosFromServer } from '../actions/fetchTodosFromServer';
 
 export function UserTodosSection({ userName }) {
+  const actions = useActions();
   const actionState = useActionState(fetchTodosFromServer);
 
   if (actionState.state === 'ONGOING') {
@@ -589,7 +618,7 @@ export function UserTodosSection({ userName }) {
       <ul>
         ...
       </ul>
-      <button onClick={() => createTodo('My New Todo', userName)}>Add Todo</button>
+      <button onClick={() => actions.run(createTodo('My New Todo', userName))}>Add Todo</button>
     </div>
   )
 }
