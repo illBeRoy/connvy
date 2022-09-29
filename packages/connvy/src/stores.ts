@@ -1,5 +1,6 @@
 import z from 'zod';
 import EventEmitter from 'event-emitter';
+import { ItemNotFoundInStoreError, ItemNotMatchedInStoreError } from './errors';
 
 export interface Store<TSchema extends z.ZodRawShape = z.ZodRawShape> {
   name: string;
@@ -44,9 +45,11 @@ export class StoreStateContainer<TSchema extends z.ZodRawShape> {
     } else if (opts && 'fallback' in opts && opts.fallback !== undefined) {
       return opts.fallback;
     } else {
-      throw new Error(
-        `No item was found at index ${i} (collection has ${this.collection.length} items, and the index we use in "get" is zero-based)`
-      );
+      throw new ItemNotFoundInStoreError({
+        method: 'get',
+        index: i,
+        collectionSize: this.collection.length,
+      });
     }
   }
 
@@ -61,7 +64,7 @@ export class StoreStateContainer<TSchema extends z.ZodRawShape> {
     } else if (opts && 'fallback' in opts && opts.fallback !== undefined) {
       return opts.fallback;
     } else {
-      throw new Error('No item in the collection matches the search criteria');
+      throw new ItemNotMatchedInStoreError();
     }
   }
 
@@ -80,9 +83,11 @@ export class StoreStateContainer<TSchema extends z.ZodRawShape> {
     updates: Partial<z.infer<typeof this.schema>>
   ): z.infer<typeof this.schema> {
     if (!(i in this.collection)) {
-      throw new Error(
-        `Could not update item at index ${i} (collection has ${this.collection.length} items, and the index we use in "update" is zero-based)`
-      );
+      throw new ItemNotFoundInStoreError({
+        method: 'update',
+        index: i,
+        collectionSize: this.collection.length,
+      });
     }
 
     const updatedItem = this.schema.parse({
@@ -121,9 +126,11 @@ export class StoreStateContainer<TSchema extends z.ZodRawShape> {
       this.collection.splice(i, 1);
       this.eventEmitter.emit('stateChanged');
     } else {
-      throw new Error(
-        `Could not delete item at index ${i} (collection has ${this.collection.length} items, and the index we use in "delete" is zero-based)`
-      );
+      throw new ItemNotFoundInStoreError({
+        method: 'delete',
+        index: i,
+        collectionSize: this.collection.length,
+      });
     }
   }
 

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useRef } from 'react';
+import { NotRunningInContextError } from './errors';
 import { Store, StoreStateContainer } from './stores';
 
 export interface ConnvyProviderProps {
@@ -43,9 +44,7 @@ export const useConnvy = () => {
   const connvyContext = useContext(ConnvyContext);
 
   if (!connvyContext) {
-    throw new Error(
-      'Connvy was not initialized in context. Please wrap your app with the <ConnvyProvider /> component'
-    );
+    throw new NotRunningInContextError();
   }
 
   return connvyContext;

@@ -1,4 +1,8 @@
 import { useState } from 'react';
+import {
+  AttemptingToWriteFromSelectorError,
+  SelectorCantBeAsyncError,
+} from './errors';
 import { useConnvy } from './provider';
 import type { Store, ReadonlyStoreAPI, PublicStoreAPI } from './stores';
 
@@ -56,36 +60,29 @@ export const useSelector = <T>(
   for (const [key, store] of Object.entries(selector.stores)) {
     const storeInstance = connvy.getStoreStateContainer(store);
 
-    // @ts-expect-error asdfdasfad
     const storeInstanceThatIsReadOnly: PublicStoreAPI = {
       get: (...args) => storeInstance.get(...args),
       getBy: (...args) => storeInstance.getBy(...args),
       list: (...args) => storeInstance.list(...args),
       listBy: (...args) => storeInstance.listBy(...args),
       create() {
-        throw new Error(
-          'Stores are read-only in selectors (tried to use the "create" method)'
-        );
+        throw new AttemptingToWriteFromSelectorError({ method: 'create' });
       },
       update() {
-        throw new Error(
-          'Stores are read-only in selectors (tried to use the "update" method)'
-        );
+        throw new AttemptingToWriteFromSelectorError({ method: 'update' });
       },
       updateAllWhere() {
-        throw new Error(
-          'Stores are read-only in selectors (tried to use the "updateAllWhere" method)'
-        );
+        throw new AttemptingToWriteFromSelectorError({
+          method: 'updateAllWhere',
+        });
       },
       delete() {
-        throw new Error(
-          'Stores are read-only in selectors (tried to use the "delete" method)'
-        );
+        throw new AttemptingToWriteFromSelectorError({ method: 'delete' });
       },
       deleteAllWhere() {
-        throw new Error(
-          'Stores are read-only in selectors (tried to use the "deleteAllWhere" method)'
-        );
+        throw new AttemptingToWriteFromSelectorError({
+          method: 'deleteAllWhere',
+        });
       },
     };
 
@@ -101,7 +98,7 @@ export const useSelector = <T>(
   }
 
   if (result instanceof Promise) {
-    throw new Error('Selectors cannot use async functions or return promises');
+    throw new SelectorCantBeAsyncError();
   }
 
   return [result, error];

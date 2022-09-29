@@ -126,7 +126,7 @@ describe('Connvy Stores', () => {
         const store = givenTodosStoreWithData([todo]);
 
         expect(() => store.get(1)).toThrow(
-          'No item was found at index 1 (collection has 1 items, and the index we use in "get" is zero-based)'
+          'Could not find item at index 1 (collection has 1 items, and the index we use in "get" is zero-based)'
         );
       });
 
@@ -286,7 +286,7 @@ describe('Connvy Stores', () => {
           const store = givenTodosStoreWithData([todo]);
 
           expect(() => store.update(1, { title: 'some title' })).toThrow(
-            'Could not update item at index 1 (collection has 1 items, and the index we use in "update" is zero-based)'
+            'Could not find item at index 1 (collection has 1 items, and the index we use in "update" is zero-based)'
           );
         });
       });
@@ -462,7 +462,7 @@ describe('Connvy Stores', () => {
         const store = givenTodosStoreWithData([todo]);
 
         expect(() => store.delete(1)).toThrow(
-          'Could not delete item at index 1 (collection has 1 items, and the index we use in "delete" is zero-based)'
+          'Could not find item at index 1 (collection has 1 items, and the index we use in "delete" is zero-based)'
         );
       });
     });

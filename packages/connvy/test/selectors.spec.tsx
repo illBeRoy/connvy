@@ -331,6 +331,7 @@ describe('Connvy Selectors', () => {
 
   describe('Fallbacks', () => {
     it.todo('should return the fallback value upon error, if one was given');
+
     it.todo(
       'should not return the fallback value, if the selection did not throw'
     );
