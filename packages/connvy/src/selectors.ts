@@ -1,8 +1,5 @@
 import { useState } from 'react';
-import {
-  AttemptingToWriteFromSelectorError,
-  SelectorCantBeAsyncError,
-} from './errors';
+import { AttemptingToWriteFromSelectorError, SelectorCantBeAsyncError } from './errors';
 import { useConnvy } from './provider';
 import type { Store, ReadonlyStoreAPI, PublicStoreAPI } from './stores';
 
@@ -13,6 +10,7 @@ export interface SelectorFactory<TParams extends any[], TReturnValue> {
 export interface Selector<TReturnValue> {
   params: unknown[];
   stores: Record<string, Store>;
+  fallback?: TReturnValue;
   select(stores: Record<string, ReadonlyStoreAPI>): TReturnValue;
 }
 
@@ -24,23 +22,19 @@ export const createSelector = <
   stores: TStores,
   selectorFn: (
     stores: {
-      [TKey in keyof TStores]: ReadonlyStoreAPI<
-        ReturnType<TStores[TKey]['schema']>
-      >;
+      [TKey in keyof TStores]: ReadonlyStoreAPI<ReturnType<TStores[TKey]['schema']>>;
     },
     ...params: TParams
-  ) => TReturnValue
+  ) => TReturnValue,
+  { fallback }: { fallback?: TReturnValue } = {}
 ): SelectorFactory<TParams, TReturnValue> => {
-  const selector: SelectorFactory<TParams, TReturnValue> = (
-    ...params: TParams
-  ) => {
+  const selector: SelectorFactory<TParams, TReturnValue> = (...params: TParams) => {
     return {
       params,
       stores,
+      fallback,
       select(stores: {
-        [TKey in keyof TStores]: ReadonlyStoreAPI<
-          ReturnType<TStores[TKey]['schema']>
-        >;
+        [TKey in keyof TStores]: ReadonlyStoreAPI<ReturnType<TStores[TKey]['schema']>>;
       }) {
         return selectorFn(stores, ...params);
       },
@@ -50,9 +44,7 @@ export const createSelector = <
   return selector;
 };
 
-export const useSelector = <T>(
-  selector: Selector<T>
-): [T | null, unknown | null] => {
+export const useSelector = <T>(selector: Selector<T>): [T | null, unknown | null] => {
   const connvy = useConnvy();
   const [memoizationKey, setMemoizationKey] = useState(Math.random());
 
@@ -102,10 +94,14 @@ export const useSelector = <T>(
     throw new SelectorCantBeAsyncError();
   }
 
-  const isErrorAResultOfMisuse =
-    error instanceof AttemptingToWriteFromSelectorError;
+  const isErrorAResultOfMisuse = error instanceof AttemptingToWriteFromSelectorError;
   if (isErrorAResultOfMisuse) {
     throw error;
+  }
+
+  if (error && selector.fallback !== undefined) {
+    result = selector.fallback;
+    error = null;
   }
 
   return [result, error];

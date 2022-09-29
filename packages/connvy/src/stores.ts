@@ -36,10 +36,7 @@ export class StoreStateContainer<TSchema extends z.ZodRawShape> {
     return validatedEntity;
   }
 
-  get(
-    i: number,
-    opts?: { fallback?: z.infer<z.ZodObject<TSchema>> }
-  ): z.infer<typeof this.schema> {
+  get(i: number, opts?: { fallback?: z.infer<z.ZodObject<TSchema>> }): z.infer<typeof this.schema> {
     if (i in this.collection) {
       return this.collection[i];
     } else if (opts && 'fallback' in opts && opts.fallback !== undefined) {
@@ -72,16 +69,11 @@ export class StoreStateContainer<TSchema extends z.ZodRawShape> {
     return [...this.collection];
   }
 
-  listBy(
-    matcher: (item: z.infer<typeof this.schema>) => boolean
-  ): z.infer<typeof this.schema>[] {
+  listBy(matcher: (item: z.infer<typeof this.schema>) => boolean): z.infer<typeof this.schema>[] {
     return this.collection.filter(matcher);
   }
 
-  update(
-    i: number,
-    updates: Partial<z.infer<typeof this.schema>>
-  ): z.infer<typeof this.schema> {
+  update(i: number, updates: Partial<z.infer<typeof this.schema>>): z.infer<typeof this.schema> {
     if (!(i in this.collection)) {
       throw new ItemNotFoundInStoreError({
         method: 'update',
@@ -134,9 +126,7 @@ export class StoreStateContainer<TSchema extends z.ZodRawShape> {
     }
   }
 
-  deleteAllWhere(
-    matcher: (item: z.infer<typeof this.schema>) => boolean
-  ): number {
+  deleteAllWhere(matcher: (item: z.infer<typeof this.schema>) => boolean): number {
     let affectedItems = 0;
 
     for (let i = 0; i < this.collection.length; i += 1) {
@@ -181,6 +171,4 @@ export const createStore = <TSchema extends z.ZodRawShape>({
 
 type SchemaFactory<TSchema> = ($: typeof z) => TSchema;
 
-export type EntityType<TStore extends Store<z.ZodRawShape>> = z.infer<
-  z.ZodObject<ReturnType<TStore['schema']>>
->;
+export type EntityType<TStore extends Store<z.ZodRawShape>> = z.infer<z.ZodObject<ReturnType<TStore['schema']>>>;

@@ -7,21 +7,15 @@ export interface ConnvyProviderProps {
 }
 
 export interface ConnvyProviderContext {
-  getStoreStateContainer<T extends Record<string, any>>(
-    store: Store<T>
-  ): StoreStateContainer<T>;
+  getStoreStateContainer<T extends Record<string, any>>(store: Store<T>): StoreStateContainer<T>;
 }
 
 export const ConnvyContext = createContext<ConnvyProviderContext | null>(null);
 
 export const ConnvyProvider = ({ children }: ConnvyProviderProps) => {
-  const storesStateContainers = useRef(
-    new Map<Store, ReturnType<Store['create']>>()
-  );
+  const storesStateContainers = useRef(new Map<Store, ReturnType<Store['create']>>());
 
-  const getStoreStateContainer = <T extends Record<string, any>>(
-    store: Store<T>
-  ): StoreStateContainer<T> => {
+  const getStoreStateContainer = <T extends Record<string, any>>(store: Store<T>): StoreStateContainer<T> => {
     const storeStateContainer = storesStateContainers.current.get(store);
 
     if (storeStateContainer) {
@@ -33,11 +27,7 @@ export const ConnvyProvider = ({ children }: ConnvyProviderProps) => {
     }
   };
 
-  return (
-    <ConnvyContext.Provider value={{ getStoreStateContainer }}>
-      {children}
-    </ConnvyContext.Provider>
-  );
+  return <ConnvyContext.Provider value={{ getStoreStateContainer }}>{children}</ConnvyContext.Provider>;
 };
 
 export const useConnvy = () => {

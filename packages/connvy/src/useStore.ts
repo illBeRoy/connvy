@@ -2,9 +2,7 @@ import { useEffect, useState } from 'react';
 import { useConnvy } from './provider';
 import { PublicStoreAPI, Store } from './stores';
 
-export const useStore = <TSchema extends Record<string, any>>(
-  store: Store<TSchema>
-): PublicStoreAPI<TSchema> => {
+export const useStore = <TSchema extends Record<string, any>>(store: Store<TSchema>): PublicStoreAPI<TSchema> => {
   const connvy = useConnvy();
   const storeStateContainer = connvy.getStoreStateContainer(store);
 

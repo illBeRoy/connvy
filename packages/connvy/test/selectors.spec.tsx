@@ -19,6 +19,24 @@ describe('Connvy Selectors', () => {
     }),
   });
 
+  const aComponentWithSelector = (selector: Selector<any>) => {
+    const Component = () => {
+      const [results, error] = useSelector(selector);
+
+      return (
+        <div>
+          Results: {`${results}`} <br />
+          Error: {`${error}`}
+        </div>
+      );
+    };
+
+    const results = (val: unknown) => `Results: ${`${val}`}`;
+    const error = (error: unknown) => `Error: ${`${error}`}`;
+
+    return { Component, results, error };
+  };
+
   describe('Basic usage', () => {
     it('should allow using selectors from react applications via the "useSelector" hook', () => {
       const selectTodosByOwner = createSelector(
@@ -87,24 +105,6 @@ describe('Connvy Selectors', () => {
   });
 
   describe('Handling errors', () => {
-    const aComponentWithSelector = (selector: Selector<any>) => {
-      const Component = () => {
-        const [results, error] = useSelector(selector);
-
-        return (
-          <div>
-            Results: {`${results}`} <br />
-            Error: {`${error}`}
-          </div>
-        );
-      };
-
-      const results = (val: unknown) => `Results: ${`${val}`}`;
-      const error = (error: unknown) => `Error: ${`${error}`}`;
-
-      return { Component, results, error };
-    };
-
     describe('Handling errors that occurred in the selector', () => {
       it('should return the thrown error as a second item in the tuple, if an error was thrown during the selection', () => {
         const selectorThatThrows = createSelector(
@@ -157,16 +157,14 @@ describe('Connvy Selectors', () => {
 
     describe('Handling errors due to misuse', () => {
       it('should throw during rendering if the app was not wrapped with a <ConnvyProvider /> component', () => {
-        const selectorThatDoesNotThrow = createSelector(
+        const someValidSelector = createSelector(
           { todosStore },
           ({ todosStore }) => {
             return todosStore.list();
           }
         );
 
-        const { Component } = aComponentWithSelector(
-          selectorThatDoesNotThrow()
-        );
+        const { Component } = aComponentWithSelector(someValidSelector());
 
         const renderApp = () => render(<Component />);
 
@@ -325,11 +323,109 @@ describe('Connvy Selectors', () => {
   });
 
   describe('Fallbacks', () => {
-    it.todo('should return the fallback value upon error, if one was given');
+    it('should return the fallback value upon error, if one was given', () => {
+      const selectorThatThrowsButHasFallback = createSelector(
+        { todosStore },
+        ({ todosStore }) => {
+          throw new Error('Oh no I threw!');
+        },
+        { fallback: 'got fallback' }
+      );
 
-    it.todo(
-      'should not return the fallback value, if the selection did not throw'
-    );
+      const { Component, results, error } = aComponentWithSelector(
+        selectorThatThrowsButHasFallback()
+      );
+
+      const component = render(
+        <ConnvyProvider>
+          <Component />
+        </ConnvyProvider>
+      );
+
+      expect(component.baseElement.textContent).toContain(
+        results('got fallback')
+      );
+      expect(component.baseElement.textContent).toContain(error(null));
+    });
+
+    it('should not return the fallback value, if the selection did not throw', () => {
+      const selectorThatThrowsButHasFallback = createSelector(
+        { todosStore },
+        ({ todosStore }) => {
+          return 'got return value';
+        },
+        { fallback: 'got fallback' }
+      );
+
+      const { Component, results, error } = aComponentWithSelector(
+        selectorThatThrowsButHasFallback()
+      );
+
+      const component = render(
+        <ConnvyProvider>
+          <Component />
+        </ConnvyProvider>
+      );
+
+      expect(component.baseElement.textContent).not.toContain('got fallback');
+      expect(component.baseElement.textContent).toContain(
+        results('got return value')
+      );
+      expect(component.baseElement.textContent).toContain(error(null));
+    });
+
+    it('should still throw (and not return the fallback) if an error was thrown due to misuse (no provider, selector was async, or trying to write to the store)', () => {
+      const regularSelectorWithFallback = createSelector(
+        { todosStore },
+        ({ todosStore }) => {
+          return 'got return value';
+        },
+        { fallback: 'got fallback' }
+      );
+
+      const asyncSelectorWithCallback = createSelector(
+        { todosStore },
+        async ({ todosStore }) => {
+          return 'got return value';
+        },
+        { fallback: Promise.resolve('got fallback') }
+      );
+
+      const selectorThatTriesToUpdateWithFallback = createSelector(
+        { todosStore },
+        ({ todosStore }) => {
+          //@ts-expect-error: types won't let you use "update" in a selector, but we're testing an illegal use-case
+          todosStore.update(0, {});
+          return 'got return value';
+        },
+        { fallback: 'got fallback' }
+      );
+
+      const { Component: ComponentWithRegularSelector } =
+        aComponentWithSelector(regularSelectorWithFallback());
+      expect(() => render(<ComponentWithRegularSelector />)).toThrow();
+
+      const { Component: ComponentWithAsyncSelector } = aComponentWithSelector(
+        asyncSelectorWithCallback()
+      );
+      expect(() =>
+        render(
+          <ConnvyProvider>
+            <ComponentWithAsyncSelector />
+          </ConnvyProvider>
+        )
+      ).toThrow();
+
+      const { Component: ComponentWithSelectorThatTriesToWrite } =
+        aComponentWithSelector(selectorThatTriesToUpdateWithFallback());
+      expect(() =>
+        render(
+          <ConnvyProvider>
+            <ComponentWithSelectorThatTriesToWrite />
+          </ConnvyProvider>
+        )
+      ).toThrow();
+    });
   });
 
   describe('Memoization', () => {
