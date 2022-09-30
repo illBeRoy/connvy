@@ -1,5 +1,5 @@
 import type { ReadonlyStoreAPI, Store, StoreInstance, StoreInstanceOf } from './stores/types';
-import type { Selector, SelectorReturnValue } from './selectors/types';
+import type { Selector } from './selectors/types';
 import { ReadOnlyStoreInstanceImpl } from './stores/readOnlyStoreInstance';
 import { AttemptingToWriteFromSelectorError, SelectorCantBeAsyncError, StoreIsReadOnlyError } from './errors';
 

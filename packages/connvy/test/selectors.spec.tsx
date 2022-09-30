@@ -11,7 +11,7 @@ describe('Connvy Selectors', () => {
     }),
   });
 
-  const aComponentWithSelector = (selector: Selector<any>) => {
+  const aComponentWithSelector = (selector: Selector) => {
     const Component = () => {
       const [results, error] = useSelector(selector);
 

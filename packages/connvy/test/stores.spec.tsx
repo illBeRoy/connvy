@@ -1,7 +1,7 @@
 import React from 'react';
 import Chance from 'chance';
 import { act, fireEvent, render } from '@testing-library/react';
-import { ConnvyProvider, createStore, StoreEntityType, useStore, PublicStoreInstanceAPI } from '../src';
+import { ConnvyProvider, createStore, PublicStoreInstanceOf, StoreEntityType, useStore } from '../src';
 
 describe('Connvy Stores', () => {
   const todosStore = createStore('todos', { schema: ($) => ({ title: $.string(), checked: $.boolean() }) });
@@ -510,7 +510,7 @@ describe('Connvy Stores', () => {
     });
 
     describe('When should component re-render', () => {
-      type UseTodoStoreHook = PublicStoreInstanceAPI<ReturnType<typeof todosStore['schema']>>;
+      type UseTodoStoreHook = PublicStoreInstanceOf<typeof todosStore>;
 
       const renderReactApp = () => {
         let timesRendered = 0;
@@ -719,11 +719,10 @@ describe('Connvy Stores', () => {
     });
 
     describe('Minimal re-rendering', () => {
-      type UseTodoStoreHook = PublicStoreInstanceAPI<ReturnType<typeof todosStore['schema']>>;
-
-      type UseBagelsStoreHook = PublicStoreInstanceAPI<ReturnType<typeof bagelsStore['schema']>>;
-
       const bagelsStore = createStore('bagels', { schema: ($) => ({ fresh: $.boolean() }) });
+
+      type UseTodoStoreHook = PublicStoreInstanceOf<typeof todosStore>;
+      type UseBagelsStoreHook = PublicStoreInstanceOf<typeof bagelsStore>;
 
       const renderReactApp = () => {
         let componentWithTodoStoreRenders = 0;

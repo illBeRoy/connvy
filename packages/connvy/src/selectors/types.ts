@@ -1,6 +1,6 @@
 import type { Store, ReadonlyStoreAPI } from '../stores/types';
 
-export interface SelectorFactory<TParams extends any[], TReturnValue> {
+export interface SelectorFactory<TParams extends unknown[], TReturnValue> {
   (...params: TParams): Selector<TReturnValue>;
 }
 

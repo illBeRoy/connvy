@@ -1,11 +1,7 @@
 import type { Store, ReadonlyStoreInstanceOf } from '../stores/types';
 import type { SelectorFactory } from './types';
 
-export const createSelector = <
-  TStores extends Record<string, Store>,
-  TParams extends any[],
-  TReturnValue extends Exclude<any, Promise<any>>
->(
+export const createSelector = <TStores extends Record<string, Store>, TParams extends unknown[], TReturnValue>(
   stores: TStores,
   selectorFn: (
     stores: {

@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useRef } from 'react';
-import type { Store, StoreInstanceOf } from './stores/types';
 import { NotRunningInContextError } from './errors';
 import { ConnvyApp } from './app';
 

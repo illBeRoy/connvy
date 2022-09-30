@@ -23,7 +23,7 @@ export interface StoreInstance<TEntity = unknown> {
   ): void;
 }
 
-export type PublicStoreInstanceAPI<TEntity = unknown> = Omit<StoreInstance<TEntity>, 'on' | 'off'>;
+export type PublicStoreInstanceAPI<TEntity = unknown> = Omit<StoreInstance<TEntity>, 'on' | 'off' | 'clone' | 'merge'>;
 
 export type ReadonlyStoreAPI<TEntity = unknown> = Omit<
   PublicStoreInstanceAPI<TEntity>,
