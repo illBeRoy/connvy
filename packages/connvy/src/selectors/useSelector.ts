@@ -12,7 +12,7 @@ export const useSelector = <T>(selector: Selector<T>): [T | null, unknown | null
 
   useEffect(function updateMemoizationKeyWhenAnyDependentStoreChanged() {
     const allStoresForSelector = Object.values(selector.stores);
-    const allStoreInstances = allStoresForSelector.map(connvy.getStoreInstance);
+    const allStoreInstances = allStoresForSelector.map((store) => connvy.app.getOrCreateStoreInstance(store));
 
     allStoreInstances.forEach((storeInstance) => {
       storeInstance.on('stateChanged', updateMemoizationKey);
@@ -28,7 +28,7 @@ export const useSelector = <T>(selector: Selector<T>): [T | null, unknown | null
   const [result, error] = useMemo(() => {
     const stores: Record<string, ReadonlyStoreAPI> = {};
     for (const [key, store] of Object.entries(selector.stores)) {
-      const storeInstance = connvy.getStoreInstance(store);
+      const storeInstance = connvy.app.getOrCreateStoreInstance(store);
 
       const storeInstanceThatIsReadOnly: PublicStoreInstanceAPI = {
         get: (...args) => storeInstance.get(...args),

@@ -4,7 +4,7 @@ import { PublicStoreInstanceOf, Store } from './types';
 
 export const useStore = <TStore extends Store>(store: TStore): PublicStoreInstanceOf<TStore> => {
   const connvy = useConnvy();
-  const storeStateContainer = connvy.getStoreInstance(store);
+  const storeInstance = connvy.app.getOrCreateStoreInstance(store);
 
   const [_, setRerenderState] = useState(Math.random());
 
@@ -13,12 +13,12 @@ export const useStore = <TStore extends Store>(store: TStore): PublicStoreInstan
   }
 
   useEffect(function onMount() {
-    storeStateContainer.on('stateChanged', rerenderMe);
+    storeInstance.on('stateChanged', rerenderMe);
 
     return function onUnmount() {
-      storeStateContainer.off('stateChanged', rerenderMe);
+      storeInstance.off('stateChanged', rerenderMe);
     };
   }, []);
 
-  return storeStateContainer;
+  return storeInstance;
 };

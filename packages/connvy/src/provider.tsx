@@ -1,33 +1,26 @@
 import React, { createContext, useContext, useRef } from 'react';
 import type { Store, StoreInstanceOf } from './stores/types';
 import { NotRunningInContextError } from './errors';
+import { ConnvyApp } from './app';
 
 export interface ConnvyProviderProps {
   children: React.ReactNode;
 }
 
 export interface ConnvyProviderContext {
-  getStoreInstance<TStore extends Store>(store: TStore): StoreInstanceOf<TStore>;
+  app: ConnvyApp;
 }
 
 export const ConnvyContext = createContext<ConnvyProviderContext | null>(null);
 
 export const ConnvyProvider = ({ children }: ConnvyProviderProps) => {
-  const storeInstances = useRef(new Map<Store, ReturnType<Store['create']>>());
+  const app = useRef(new ConnvyApp());
 
-  const getStoreInstance = <TStore extends Store>(store: TStore): StoreInstanceOf<TStore> => {
-    const storeInstance = storeInstances.current.get(store);
-
-    if (storeInstance) {
-      return storeInstance as StoreInstanceOf<TStore>;
-    } else {
-      const newStoreInstance = store.create();
-      storeInstances.current.set(store, newStoreInstance);
-      return newStoreInstance as StoreInstanceOf<TStore>;
-    }
+  const context: ConnvyProviderContext = {
+    app: app.current,
   };
 
-  return <ConnvyContext.Provider value={{ getStoreInstance }}>{children}</ConnvyContext.Provider>;
+  return <ConnvyContext.Provider value={context}>{children}</ConnvyContext.Provider>;
 };
 
 export const useConnvy = () => {
