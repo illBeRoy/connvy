@@ -1,33 +1,33 @@
 import React, { createContext, useContext, useRef } from 'react';
+import type { Store, StoreInstanceOf } from './stores/types';
 import { NotRunningInContextError } from './errors';
-import { Store, StoreStateContainer } from './stores';
 
 export interface ConnvyProviderProps {
   children: React.ReactNode;
 }
 
 export interface ConnvyProviderContext {
-  getStoreStateContainer<T extends Record<string, any>>(store: Store<T>): StoreStateContainer<T>;
+  getStoreInstance<TStore extends Store>(store: TStore): StoreInstanceOf<TStore>;
 }
 
 export const ConnvyContext = createContext<ConnvyProviderContext | null>(null);
 
 export const ConnvyProvider = ({ children }: ConnvyProviderProps) => {
-  const storesStateContainers = useRef(new Map<Store, ReturnType<Store['create']>>());
+  const storeInstances = useRef(new Map<Store, ReturnType<Store['create']>>());
 
-  const getStoreStateContainer = <T extends Record<string, any>>(store: Store<T>): StoreStateContainer<T> => {
-    const storeStateContainer = storesStateContainers.current.get(store);
+  const getStoreInstance = <TStore extends Store>(store: TStore): StoreInstanceOf<TStore> => {
+    const storeInstance = storeInstances.current.get(store);
 
-    if (storeStateContainer) {
-      return storeStateContainer as StoreStateContainer<T>;
+    if (storeInstance) {
+      return storeInstance as StoreInstanceOf<TStore>;
     } else {
-      const newStateContainer = store.create();
-      storesStateContainers.current.set(store, newStateContainer);
-      return newStateContainer;
+      const newStoreInstance = store.create();
+      storeInstances.current.set(store, newStoreInstance);
+      return newStoreInstance as StoreInstanceOf<TStore>;
     }
   };
 
-  return <ConnvyContext.Provider value={{ getStoreStateContainer }}>{children}</ConnvyContext.Provider>;
+  return <ConnvyContext.Provider value={{ getStoreInstance }}>{children}</ConnvyContext.Provider>;
 };
 
 export const useConnvy = () => {

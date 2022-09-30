@@ -171,7 +171,9 @@ describe('Connvy Selectors', () => {
             </ConnvyProvider>
           );
 
-        expect(renderApp).toThrow('Stores are read-only in selectors (tried to use the "create" method)');
+        expect(renderApp).toThrow(
+          'Stores are read-only in selectors (tried to use the "create" method on store "todos)'
+        );
       });
 
       it('should throw if attempting to use "update" from a selector', () => {
@@ -189,7 +191,9 @@ describe('Connvy Selectors', () => {
             </ConnvyProvider>
           );
 
-        expect(renderApp).toThrow('Stores are read-only in selectors (tried to use the "update" method)');
+        expect(renderApp).toThrow(
+          'Stores are read-only in selectors (tried to use the "update" method on store "todos)'
+        );
       });
 
       it('should throw if attempting to use "updateAllWhere" from a selector', () => {
@@ -207,7 +211,9 @@ describe('Connvy Selectors', () => {
             </ConnvyProvider>
           );
 
-        expect(renderApp).toThrow('Stores are read-only in selectors (tried to use the "updateAllWhere" method)');
+        expect(renderApp).toThrow(
+          'Stores are read-only in selectors (tried to use the "updateAllWhere" method on store "todos)'
+        );
       });
 
       it('should throw if attempting to use "delete" from a selector', () => {
@@ -225,7 +231,9 @@ describe('Connvy Selectors', () => {
             </ConnvyProvider>
           );
 
-        expect(renderApp).toThrow('Stores are read-only in selectors (tried to use the "delete" method)');
+        expect(renderApp).toThrow(
+          'Stores are read-only in selectors (tried to use the "delete" method on store "todos)'
+        );
       });
 
       it('should throw if attempting to use "deleteAllWhere" from a selector', () => {
@@ -243,7 +251,9 @@ describe('Connvy Selectors', () => {
             </ConnvyProvider>
           );
 
-        expect(renderApp).toThrow('Stores are read-only in selectors (tried to use the "deleteAllWhere" method)');
+        expect(renderApp).toThrow(
+          'Stores are read-only in selectors (tried to use the "deleteAllWhere" method on store "todos)'
+        );
       });
     });
   });

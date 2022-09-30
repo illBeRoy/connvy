@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useConnvy } from './provider';
-import { PublicStoreAPI, Store } from './stores';
+import { useConnvy } from '../provider';
+import { PublicStoreInstanceOf, Store } from './types';
 
-export const useStore = <TSchema extends Record<string, any>>(store: Store<TSchema>): PublicStoreAPI<TSchema> => {
+export const useStore = <TStore extends Store>(store: TStore): PublicStoreInstanceOf<TStore> => {
   const connvy = useConnvy();
-  const storeStateContainer = connvy.getStoreStateContainer(store);
+  const storeStateContainer = connvy.getStoreInstance(store);
 
   const [_, setRerenderState] = useState(Math.random());
 

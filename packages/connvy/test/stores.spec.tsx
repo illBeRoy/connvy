@@ -1,13 +1,13 @@
 import React from 'react';
 import Chance from 'chance';
 import { act, fireEvent, render } from '@testing-library/react';
-import { ConnvyProvider, createStore, EntityType, useStore, PublicStoreAPI } from '../src';
+import { ConnvyProvider, createStore, StoreEntityType, useStore, PublicStoreInstanceAPI } from '../src';
 
 describe('Connvy Stores', () => {
   const todosStore = createStore('todos', { schema: ($) => ({ title: $.string(), checked: $.boolean() }) });
 
   describe('CRUD operations', () => {
-    type Todo = EntityType<typeof todosStore>;
+    type Todo = StoreEntityType<typeof todosStore>;
 
     const givenTodosStoreWithData = (data: Todo[]) => {
       const store = todosStore.create();
@@ -117,7 +117,7 @@ describe('Connvy Stores', () => {
         const store = givenTodosStoreWithData([todo]);
 
         expect(() => store.get(1)).toThrow(
-          'Could not find item at index 1 (collection has 1 items, and the index we use in "get" is zero-based)'
+          'Could not find item at index 1 in store "todos" (collection has 1 items, and the index we use in "get" is zero-based)'
         );
       });
 
@@ -140,7 +140,7 @@ describe('Connvy Stores', () => {
         const store = givenTodosStoreWithData([todo1, todo2, todo3]);
 
         expect(() => store.getBy((todo) => todo.checked)).toThrow(
-          'No item in the collection matches the search criteria'
+          'No item in the collection matches the search criteria in store "todos"'
         );
       });
 
@@ -273,7 +273,7 @@ describe('Connvy Stores', () => {
           const store = givenTodosStoreWithData([todo]);
 
           expect(() => store.update(1, { title: 'some title' })).toThrow(
-            'Could not find item at index 1 (collection has 1 items, and the index we use in "update" is zero-based)'
+            'Could not find item at index 1 in store "todos" (collection has 1 items, and the index we use in "update" is zero-based)'
           );
         });
       });
@@ -449,7 +449,7 @@ describe('Connvy Stores', () => {
         const store = givenTodosStoreWithData([todo]);
 
         expect(() => store.delete(1)).toThrow(
-          'Could not find item at index 1 (collection has 1 items, and the index we use in "delete" is zero-based)'
+          'Could not find item at index 1 in store "todos" (collection has 1 items, and the index we use in "delete" is zero-based)'
         );
       });
     });
@@ -510,7 +510,7 @@ describe('Connvy Stores', () => {
     });
 
     describe('When should component re-render', () => {
-      type UseTodoStoreHook = PublicStoreAPI<ReturnType<typeof todosStore['schema']>>;
+      type UseTodoStoreHook = PublicStoreInstanceAPI<ReturnType<typeof todosStore['schema']>>;
 
       const renderReactApp = () => {
         let timesRendered = 0;
@@ -719,9 +719,9 @@ describe('Connvy Stores', () => {
     });
 
     describe('Minimal re-rendering', () => {
-      type UseTodoStoreHook = PublicStoreAPI<ReturnType<typeof todosStore['schema']>>;
+      type UseTodoStoreHook = PublicStoreInstanceAPI<ReturnType<typeof todosStore['schema']>>;
 
-      type UseBagelsStoreHook = PublicStoreAPI<ReturnType<typeof bagelsStore['schema']>>;
+      type UseBagelsStoreHook = PublicStoreInstanceAPI<ReturnType<typeof bagelsStore['schema']>>;
 
       const bagelsStore = createStore('bagels', { schema: ($) => ({ fresh: $.boolean() }) });
 
