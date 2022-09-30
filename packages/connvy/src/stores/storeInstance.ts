@@ -3,10 +3,10 @@ import { ItemNotFoundInStoreError, ItemNotMatchedInStoreError } from '../errors'
 import { SchemaParser, StoreInstance } from './types';
 
 export class StoreInstanceImpl<TEntity> implements StoreInstance<TEntity> {
-  private collection: TEntity[] = [];
-  private readonly storeName: string;
-  private readonly eventEmitter = EventEmitter();
-  private readonly parseSchema: SchemaParser<TEntity>;
+  protected collection: TEntity[] = [];
+  protected readonly storeName: string;
+  protected readonly eventEmitter = EventEmitter();
+  protected readonly parseSchema: SchemaParser<TEntity>;
 
   constructor(storeName: string, schema: SchemaParser<TEntity>) {
     this.storeName = storeName;
@@ -129,11 +129,21 @@ export class StoreInstanceImpl<TEntity> implements StoreInstance<TEntity> {
     return affectedItems;
   }
 
-  on(event: 'stateChanged', cb: () => void) {
+  clone(opts?: { as?: (() => StoreInstance<TEntity>) | undefined } | undefined): StoreInstance<TEntity> {
+    const newInstance = opts?.as?.() ?? new StoreInstanceImpl(this.storeName, this.parseSchema);
+    newInstance.merge(this);
+    return newInstance;
+  }
+
+  merge(from: StoreInstance<TEntity>): void {
+    this.collection = [...from.list()];
+  }
+
+  on<TEvent extends 'stateChanged'>(event: TEvent, cb: () => void): void {
     this.eventEmitter.on(event, cb);
   }
 
-  off(event: 'stateChanged', cb: () => void) {
+  off<TEvent extends 'stateChanged'>(event: TEvent, cb: () => void): void {
     this.eventEmitter.off(event, cb);
   }
 }

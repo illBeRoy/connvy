@@ -14,6 +14,8 @@ export interface StoreInstance<TEntity = unknown> {
   updateAllWhere(matcher: (item: TEntity) => boolean, updates: Partial<TEntity>): number;
   delete(i: number): void;
   deleteAllWhere(matcher: (item: TEntity) => boolean): number;
+  clone(opts?: { as?: () => StoreInstance<TEntity> }): StoreInstance<TEntity>;
+  merge(from: StoreInstance<TEntity>): void;
   on<TEvent extends keyof StoreInstanceEvents>(event: TEvent, cb: StoreInstanceEvents[keyof StoreInstanceEvents]): void;
   off<TEvent extends keyof StoreInstanceEvents>(
     event: TEvent,

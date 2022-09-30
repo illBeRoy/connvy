@@ -30,6 +30,18 @@ export class ItemNotMatchedInStoreError extends ConnvyError {
   }
 }
 
+export class StoreIsReadOnlyError extends ConnvyError {
+  storeName: string;
+  method: string;
+  constructor({ storeName, method }: { storeName: string; method: string }) {
+    super(
+      `Tried to write into a Read Only instance of a store (tried to use the "${method}" method on store "${storeName})"`
+    );
+    this.storeName = storeName;
+    this.method = method;
+  }
+}
+
 export class AttemptingToWriteFromSelectorError extends ConnvyError {
   constructor({ storeName, method }: { storeName: string; method: string }) {
     super(`Stores are read-only in selectors (tried to use the "${method}" method on store "${storeName})"`);
