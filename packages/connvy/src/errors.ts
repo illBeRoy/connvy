@@ -1,3 +1,5 @@
+import { Action } from './actions/types';
+
 export class ConnvyError extends Error {}
 
 export class NotRunningInContextError extends ConnvyError {
@@ -51,5 +53,29 @@ export class AttemptingToWriteFromSelectorError extends ConnvyError {
 export class SelectorCantBeAsyncError extends ConnvyError {
   constructor() {
     super('Selectors cannot use async functions or return promises');
+  }
+}
+
+export class OngoingActionError extends ConnvyError {
+  readonly ongoingAction: Action;
+  readonly incomingAction: Action;
+
+  constructor({ ongoingAction, incomingAction }: { ongoingAction: Action; incomingAction: Action }) {
+    super(
+      '\n' +
+        '  cannot invoke action\n' +
+        `    ${OngoingActionError.formatActionIntoStr(incomingAction)}\n` +
+        '  as there is a currently ongoing action\n' +
+        `    ${OngoingActionError.formatActionIntoStr(ongoingAction)}\n` +
+        '  if you want the new action to take precedence, please cancel the ongoing one first'
+    );
+    this.ongoingAction = ongoingAction;
+    this.incomingAction = incomingAction;
+  }
+
+  private static formatActionIntoStr(action: Action) {
+    const actionParams = JSON.stringify(action.params).slice(1, -1);
+    const formattedActionParams = actionParams.length <= 80 ? actionParams : `${actionParams.substring(0, 80)}...`;
+    return `${action.name}(${formattedActionParams})`;
   }
 }

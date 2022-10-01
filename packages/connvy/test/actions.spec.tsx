@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { act, fireEvent, render } from '@testing-library/react';
 import { ConnvyProvider, createAction, createStore, useStore } from '../src';
 import { useActions } from '../src/actions/useActions';
@@ -12,11 +12,11 @@ describe('Connvy Actions', () => {
     }),
   });
 
-  const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
+  const waitForAsync = (time = 500) => new Promise((res) => setTimeout(res, time));
 
   describe('Basic usage', () => {
     it('should allow using actions from react applications via the "useActions" hook', () => {
-      const createTodoForMe = createAction('createTodo', { todosStore }, ({ todosStore }, title: string) => {
+      const createTodoForMe = createAction('createTodoForMe', { todosStore }, ({ todosStore }, title: string) => {
         todosStore.create({ title, owner: 'me', checked: false });
       });
 
@@ -76,7 +76,7 @@ describe('Connvy Actions', () => {
 
   describe('Async Actions', () => {
     it('should return a promise that resolves after the action is completed', async () => {
-      const createTodoForMe = createAction('createTodo', { todosStore }, async ({ todosStore }, title: string) => {
+      const createTodoForMe = createAction('createTodoForMe', { todosStore }, async ({ todosStore }, title: string) => {
         todosStore.create({ title, owner: 'me', checked: false });
       });
 
@@ -106,24 +106,144 @@ describe('Connvy Actions', () => {
         </ConnvyProvider>
       );
 
-      act(() => {
+      await act(async () => {
         fireEvent.click(component.getByText('Run Routine'));
+        await waitForAsync();
       });
-
-      await sleep(500);
 
       expect(component.baseElement.textContent).toContain(['Created During Action', 'Created After Action'].join());
     });
   });
 
   describe('Error Handling', () => {
-    it.todo('should rethrow errors thrown in a sync action');
+    it('should rethrow errors thrown in a sync action', () => {
+      const iThrow = createAction('iThrow', {}, () => {
+        throw new Error('Oh no I threw!');
+      });
 
-    it.todo('should reject async actions if errors were thrown in them');
+      const Component = () => {
+        const actions = useActions();
+        const [error, setError] = useState('');
+
+        const runRoutine = () => {
+          try {
+            actions.run(iThrow());
+          } catch (err) {
+            setError(`${err}`);
+          }
+        };
+
+        return (
+          <div>
+            Error: {error}
+            <br />
+            <button onClick={runRoutine}>Run Routine</button>
+          </div>
+        );
+      };
+
+      const component = render(
+        <ConnvyProvider>
+          <Component />
+        </ConnvyProvider>
+      );
+
+      act(() => {
+        fireEvent.click(component.getByText('Run Routine'));
+      });
+
+      expect(component.baseElement.textContent).toContain('Error: Oh no I threw!');
+    });
+
+    it('should reject async actions if errors were thrown in them', async () => {
+      const iReject = createAction('iReject', {}, async () => {
+        throw new Error('Oh no I threw!');
+      });
+
+      const Component = () => {
+        const actions = useActions();
+        const [error, setError] = useState('');
+
+        const runRoutine = () => {
+          actions.run(iReject()).catch((err) => setError(`${err}`));
+        };
+
+        return (
+          <div>
+            Error: {error}
+            <br />
+            <button onClick={runRoutine}>Run Routine</button>
+          </div>
+        );
+      };
+
+      const component = render(
+        <ConnvyProvider>
+          <Component />
+        </ConnvyProvider>
+      );
+
+      await act(async () => {
+        fireEvent.click(component.getByText('Run Routine'));
+        await waitForAsync();
+      });
+
+      expect(component.baseElement.textContent).toContain('Error: Oh no I threw!');
+    });
   });
 
   describe('Actions Linearity', () => {
-    it.todo('should not let you run an action while another one is already ongoing');
+    it('should not let you run an action while another one is already ongoing', async () => {
+      const waitSeconds = createAction('waitSeconds', {}, async ({}, seconds: number) => {
+        await new Promise((res) => setTimeout(res, seconds * 1000));
+      });
+
+      const createTodoForMe = createAction('createTodoForMe', { todosStore }, ({ todosStore }, title: string) => {
+        todosStore.create({ title, owner: 'me', checked: false });
+      });
+
+      const Component = () => {
+        const actions = useActions();
+        const [error, setError] = useState('');
+
+        const runRoutine = () => {
+          actions.run(waitSeconds(1));
+
+          try {
+            actions.run(createTodoForMe('This should not be created'));
+          } catch (err) {
+            setError(`${err}`);
+          }
+        };
+
+        return (
+          <div>
+            Error: {error}
+            <br />
+            <button onClick={runRoutine}>Run Routine</button>
+          </div>
+        );
+      };
+
+      const component = render(
+        <ConnvyProvider>
+          <Component />
+        </ConnvyProvider>
+      );
+
+      await act(async () => {
+        fireEvent.click(component.getByText('Run Routine'));
+        await waitForAsync(1100);
+      });
+
+      expect(component.baseElement.textContent).toContain(
+        '  cannot invoke action\n' +
+          '    createTodoForMe("This should not be created")\n' +
+          '  as there is a currently ongoing action\n' +
+          '    waitSeconds(1)\n' +
+          '  if you want the new action to take precedence, please cancel the ongoing one first'
+      );
+    });
   });
 
   describe('Action State', () => {

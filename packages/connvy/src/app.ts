@@ -2,10 +2,16 @@ import type { PublicStoreInstanceAPI, ReadonlyStoreAPI, Store, StoreInstance, St
 import { ReadOnlyStoreInstanceImpl } from './stores/readOnlyStoreInstance';
 import type { Selector } from './selectors/types';
 import type { Action, ActionIsAsync } from './actions/types';
-import { AttemptingToWriteFromSelectorError, SelectorCantBeAsyncError, StoreIsReadOnlyError } from './errors';
+import {
+  AttemptingToWriteFromSelectorError,
+  OngoingActionError,
+  SelectorCantBeAsyncError,
+  StoreIsReadOnlyError,
+} from './errors';
 
 export class ConnvyApp {
   private readonly storeInstances = new Map<Store, StoreInstance>();
+  private ongoingAction: Action | null = null;
 
   getOrCreateStoreInstance<TStore extends Store>(store: TStore): StoreInstanceOf<TStore> {
     const storeInstance = this.storeInstances.get(store);
@@ -62,6 +68,12 @@ export class ConnvyApp {
   }
 
   runAction<TAction extends Action>(action: TAction): ActionIsAsync<TAction> {
+    if (this.ongoingAction) {
+      throw new OngoingActionError({ ongoingAction: this.ongoingAction, incomingAction: action });
+    }
+
+    this.ongoingAction = action;
+
     const stores: Record<string, PublicStoreInstanceAPI> = {};
 
     for (const [key, store] of Object.entries(action.stores)) {
@@ -72,8 +84,11 @@ export class ConnvyApp {
     const actionResult = action.run(stores);
 
     if (actionResult instanceof Promise) {
-      return actionResult.then(() => void 0) as ActionIsAsync<TAction>;
+      return actionResult.then(() => {
+        this.ongoingAction = null;
+      }) as ActionIsAsync<TAction>;
     } else {
+      this.ongoingAction = null;
       return undefined as ActionIsAsync<TAction>;
     }
   }

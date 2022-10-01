@@ -5,6 +5,9 @@
     "test": "jest",
     "build": "tsc"
   },
+  "files": [
+    "dist/src"
+  ],
   "peerDependencies": {
     "react": ">=16.8.0"
   },
