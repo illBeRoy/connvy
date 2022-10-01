@@ -1,6 +1,7 @@
-import type { ReadonlyStoreAPI, Store, StoreInstance, StoreInstanceOf } from './stores/types';
-import type { Selector } from './selectors/types';
+import type { PublicStoreInstanceAPI, ReadonlyStoreAPI, Store, StoreInstance, StoreInstanceOf } from './stores/types';
 import { ReadOnlyStoreInstanceImpl } from './stores/readOnlyStoreInstance';
+import type { Selector } from './selectors/types';
+import type { Action, ActionIsAsync } from './actions/types';
 import { AttemptingToWriteFromSelectorError, SelectorCantBeAsyncError, StoreIsReadOnlyError } from './errors';
 
 export class ConnvyApp {
@@ -58,5 +59,22 @@ export class ConnvyApp {
     }
 
     return [result, error];
+  }
+
+  runAction<TAction extends Action>(action: TAction): ActionIsAsync<TAction> {
+    const stores: Record<string, PublicStoreInstanceAPI> = {};
+
+    for (const [key, store] of Object.entries(action.stores)) {
+      const readonlyStoreInstance = this.getOrCreateStoreInstance(store);
+      stores[key] = readonlyStoreInstance;
+    }
+
+    const actionResult = action.run(stores);
+
+    if (actionResult instanceof Promise) {
+      return actionResult.then(() => void 0) as ActionIsAsync<TAction>;
+    } else {
+      return undefined as ActionIsAsync<TAction>;
+    }
   }
 }

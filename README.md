@@ -525,6 +525,7 @@ There are three states for an action:
 1. `IDLE` - action is not being run right now
 2. `ONGOING` - action is currently ongoing
 3. `ERROR` - action has returned error (read more about it in the *error handling* section)
+3. `COMPLETED` - action was just run and completed
 
 Additionally, you can use the hook to subscribe to any action in the app:
 
