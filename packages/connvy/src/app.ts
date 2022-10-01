@@ -74,6 +74,18 @@ export class ConnvyApp {
 
     this.ongoingAction = action;
 
+    return this.runSyncOrAsyncAction(action, (err) => {
+      this.ongoingAction = null;
+      if (err) {
+        throw err;
+      }
+    });
+  }
+
+  private runSyncOrAsyncAction<TAction extends Action>(
+    action: TAction,
+    andThen: (err?: unknown | null) => void
+  ): ActionIsAsync<TAction> {
     const stores: Record<string, PublicStoreInstanceAPI> = {};
 
     for (const [key, store] of Object.entries(action.stores)) {
@@ -81,14 +93,19 @@ export class ConnvyApp {
       stores[key] = readonlyStoreInstance;
     }
 
-    const actionResult = action.run(stores);
+    let actionResult: void | Promise<void>;
+
+    try {
+      actionResult = action.run(stores);
+    } catch (err) {
+      andThen(err);
+      return undefined as ActionIsAsync<TAction>;
+    }
 
     if (actionResult instanceof Promise) {
-      return actionResult.then(() => {
-        this.ongoingAction = null;
-      }) as ActionIsAsync<TAction>;
+      return actionResult.then(() => andThen()).catch((err) => andThen(err)) as ActionIsAsync<TAction>;
     } else {
-      this.ongoingAction = null;
+      andThen();
       return undefined as ActionIsAsync<TAction>;
     }
   }

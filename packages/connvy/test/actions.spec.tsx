@@ -244,6 +244,89 @@ describe('Connvy Actions', () => {
           '  if you want the new action to take precedence, please cancel the ongoing one first'
       );
     });
+
+    it('should let you run another action if the ongoing one has thrown', () => {
+      const iThrow = createAction('iThrow', {}, () => {
+        throw new Error('Oh no I threw!');
+      });
+
+      const createTodoForMe = createAction('createTodoForMe', { todosStore }, ({ todosStore }, title: string) => {
+        todosStore.create({ title, owner: 'me', checked: false });
+      });
+
+      const Component = () => {
+        const todos = useStore(todosStore);
+        const actions = useActions();
+
+        const runRoutine = () => {
+          try {
+            actions.run(iThrow());
+          } catch (err) {
+            actions.run(createTodoForMe('My Todo'));
+          }
+        };
+
+        return (
+          <div>
+            Created Todo: {todos.list()[0]?.title}
+            <br />
+            <button onClick={runRoutine}>Run Routine</button>
+          </div>
+        );
+      };
+
+      const component = render(
+        <ConnvyProvider>
+          <Component />
+        </ConnvyProvider>
+      );
+
+      act(() => {
+        fireEvent.click(component.getByText('Run Routine'));
+      });
+
+      expect(component.baseElement.textContent).toContain('Created Todo: My Todo');
+    });
+
+    it('should let you run another action if the ongoing one is async and has reject', async () => {
+      const iReject = createAction('iReject', {}, async () => {
+        throw new Error('Oh no I threw!');
+      });
+
+      const createTodoForMe = createAction('createTodoForMe', { todosStore }, ({ todosStore }, title: string) => {
+        todosStore.create({ title, owner: 'me', checked: false });
+      });
+
+      const Component = () => {
+        const todos = useStore(todosStore);
+        const actions = useActions();
+
+        const runRoutine = () => {
+          actions.run(iReject()).catch(() => actions.run(createTodoForMe('My Todo')));
+        };
+
+        return (
+          <div>
+            Created Todo: {todos.list()[0]?.title}
+            <br />
+            <button onClick={runRoutine}>Run Routine</button>
+          </div>
+        );
+      };
+
+      const component = render(
+        <ConnvyProvider>
+          <Component />
+        </ConnvyProvider>
+      );
+
+      await act(async () => {
+        fireEvent.click(component.getByText('Run Routine'));
+        await waitForAsync();
+      });
+
+      expect(component.baseElement.textContent).toContain('Created Todo: My Todo');
+    });
   });
 
   describe('Action State', () => {
