@@ -13,3 +13,11 @@ export interface Action<TAsync extends void | Promise<void> = void | Promise<voi
 }
 
 export type ActionIsAsync<TAction extends Action> = TAction extends Action<infer TAsync> ? TAsync : never;
+
+export interface ActionState {
+  state: ActionStateState;
+  actionName: string;
+  error: null | unknown;
+}
+
+export type ActionStateState = 'IDLE' | 'ONGOING' | 'ERROR' | 'COMPLETED';

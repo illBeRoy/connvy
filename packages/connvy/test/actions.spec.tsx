@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { act, fireEvent, render } from '@testing-library/react';
-import { ConnvyProvider, createAction, createStore, useStore } from '../src';
-import { useActions } from '../src/actions/useActions';
+import { ConnvyProvider, createAction, createStore, useActions, useActionState, useStore } from '../src';
 
 describe('Connvy Actions', () => {
   const todosStore = createStore('todos', {
@@ -330,7 +329,22 @@ describe('Connvy Actions', () => {
   });
 
   describe('Action State', () => {
-    it.todo('should return the IDLE state if no action was run yet');
+    it('should return the IDLE state if no action was run yet', () => {
+      const Component = () => {
+        const actionState = useActionState();
+        return <div>{JSON.stringify(actionState)}</div>;
+      };
+
+      const component = render(
+        <ConnvyProvider>
+          <Component />
+        </ConnvyProvider>
+      );
+
+      expect(component.baseElement.textContent).toContain('"state":"IDLE"');
+      expect(component.baseElement.textContent).toContain('"actionName":""');
+      expect(component.baseElement.textContent).toContain('"error":null');
+    });
 
     it.todo('should return the ONGOING state if an action is currently running');
 
