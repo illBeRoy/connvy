@@ -101,6 +101,25 @@ export class StoreInstanceImpl<TEntity> implements StoreInstance<TEntity> {
     return affectedItems;
   }
 
+  replace(i: number, entity: TEntity): TEntity {
+    if (!(i in this.collection)) {
+      throw new ItemNotFoundInStoreError({
+        storeName: this.storeName,
+        method: 'replace',
+        index: i,
+        collectionSize: this.collection.length,
+      });
+    }
+
+    const validatedEntity = this.parseSchema(entity);
+    Object.freeze(validatedEntity);
+
+    this.collection[i] = validatedEntity;
+    this.eventEmitter.emit('stateChanged');
+
+    return validatedEntity;
+  }
+
   delete(i: number): void {
     if (i in this.collection) {
       this.collection.splice(i, 1);

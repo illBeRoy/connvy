@@ -12,6 +12,7 @@ export interface StoreInstance<TEntity = unknown> {
   listBy(matcher: (item: TEntity) => boolean): TEntity[];
   update(i: number, updates: Partial<TEntity>): TEntity;
   updateAllWhere(matcher: (item: TEntity) => boolean, updates: Partial<TEntity>): number;
+  replace(i: number, entity: TEntity): TEntity;
   delete(i: number): void;
   deleteAllWhere(matcher: (item: TEntity) => boolean): number;
   clone(opts?: { as?: () => StoreInstance<TEntity> }): StoreInstance<TEntity>;
@@ -27,7 +28,7 @@ export type PublicStoreInstanceAPI<TEntity = unknown> = Omit<StoreInstance<TEnti
 
 export type ReadonlyStoreAPI<TEntity = unknown> = Omit<
   PublicStoreInstanceAPI<TEntity>,
-  'create' | 'update' | 'updateAllWhere' | 'delete' | 'deleteAllWhere'
+  'create' | 'update' | 'updateAllWhere' | 'replace' | 'delete' | 'deleteAllWhere'
 >;
 
 export interface StoreInstanceEvents {

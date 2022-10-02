@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { act, fireEvent, render } from '@testing-library/react';
+import { afterThis } from 'jest-after-this';
 import { ConnvyProvider, createAction, createStore, useActions, useActionState, useStore } from '../src';
 
 describe('Connvy Actions', () => {
@@ -346,7 +347,44 @@ describe('Connvy Actions', () => {
       expect(component.baseElement.textContent).toContain('"error":null');
     });
 
-    it.todo('should return the ONGOING state if an action is currently running');
+    it('should return the ONGOING state if an action is currently running', async () => {
+      afterThis(() => waitForAsync(1000));
+
+      const waitSeconds = createAction('waitSeconds', {}, async ({}, seconds: number) => {
+        await new Promise((res) => setTimeout(res, seconds * 1000));
+      });
+
+      const Component = () => {
+        const actions = useActions();
+        const actionState = useActionState();
+
+        const runRoutine = () => {
+          actions.run(waitSeconds(1));
+        };
+
+        return (
+          <div>
+            {JSON.stringify(actionState)}
+            <br />
+            <button onClick={runRoutine}>Run Routine</button>
+          </div>
+        );
+      };
+
+      const component = render(
+        <ConnvyProvider>
+          <Component />
+        </ConnvyProvider>
+      );
+
+      act(() => {
+        fireEvent.click(component.getByText('Run Routine'));
+      });
+
+      expect(component.baseElement.textContent).toContain('"state":"ONGOING"');
+      expect(component.baseElement.textContent).toContain('"actionName":"waitSeconds"');
+      expect(component.baseElement.textContent).toContain('"error":null');
+    });
 
     it.todo('should return the COMPLETED state of the last action that was run');
 

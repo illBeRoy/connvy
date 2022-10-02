@@ -212,7 +212,7 @@ describe('Connvy Stores', () => {
       });
     });
 
-    describe('Updating items in the store', () => {
+    describe('Updating or replacing items in the store', () => {
       describe('Updating by index', () => {
         it('should allow updating an item in the store', () => {
           const todo: Todo = {
@@ -375,6 +375,54 @@ describe('Connvy Stores', () => {
           ).toThrow('invalid_type');
           expect(store.get(0)).toEqual(todo1);
           expect(store.get(1)).toEqual(todo2);
+        });
+      });
+
+      describe('Replacing by index', () => {
+        it('should allow replacing an item in the store', () => {
+          const todo: Todo = {
+            title: Chance().sentence(),
+            checked: Chance().bool(),
+          };
+
+          const newTodo: Todo = {
+            title: Chance().sentence(),
+            checked: Chance().bool(),
+          };
+
+          const store = givenTodosStoreWithData([todo]);
+          store.replace(0, newTodo);
+
+          expect(store.get(0)).toEqual(newTodo);
+          expect(store.list()).toHaveLength(1);
+        });
+
+        it('should throw if the new object does not match the schema, and not alter the target item', () => {
+          const todo: Todo = {
+            title: Chance().sentence(),
+            checked: Chance().bool(),
+          };
+
+          const notAValidTitle = 123456;
+
+          const store = givenTodosStoreWithData([todo]);
+
+          // @ts-expect-error: store expects our new title to be a string, but it isn't. this is ok since this is what we're trying to test here!
+          expect(() => store.replace(0, { title: notAValidTitle, checked: Chance().bool() })).toThrow('invalid_type');
+          expect(store.get(0)).toEqual(todo);
+        });
+
+        it('should throw if trying to replace an item that does not exist', () => {
+          const todo: Todo = {
+            title: Chance().sentence(),
+            checked: Chance().bool(),
+          };
+
+          const store = givenTodosStoreWithData([todo]);
+
+          expect(() => store.replace(1, { title: 'some title', checked: true })).toThrow(
+            'Could not find item at index 1 in store "todos" (collection has 1 items, and the index we use in "replace" is zero-based)'
+          );
         });
       });
     });
@@ -603,6 +651,26 @@ describe('Connvy Stores', () => {
         });
 
         expect(timesReRendered()).toBe(1);
+      });
+
+      it('should rerender when using "replace"', () => {
+        const [todos, timesReRendered] = renderReactApp();
+
+        act(() => {
+          todos.create({
+            title: Chance().sentence(),
+            checked: Chance().bool(),
+          });
+        });
+
+        act(() => {
+          todos.replace(0, {
+            title: Chance().sentence(),
+            checked: Chance().bool(),
+          });
+        });
+
+        expect(timesReRendered()).toBe(2);
       });
 
       it('should rerender when using "delete"', () => {

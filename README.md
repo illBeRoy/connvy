@@ -336,6 +336,8 @@ todos.getBy(todo => todo.title.includes('first')); // returns the first item tha
 todos.update(0, { isChecked: true }); // updates the first item in the store. throws if does not exist
 todos.updateAllWhere(todo => !todo.isChecked, { isChecked: true }); // updates all items that match the criteria. throws if does not exist
 
+todo.replace(0, { title: 'my replaced todo!', isChecked: true }); // replaces the first item in the store. throws if does not exist
+
 todos.delete(0); // deletes the first item in the store
 todos.deleteAllWhere(todo => todo.isChecked) // deletes all items that match the criteria
 

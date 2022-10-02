@@ -18,6 +18,10 @@ export class ReadOnlyStoreInstanceImpl<TEntity> extends StoreInstanceImpl<TEntit
     });
   }
 
+  replace(): TEntity {
+    throw new StoreIsReadOnlyError({ storeName: this.storeName, method: 'replace' });
+  }
+
   delete(): void {
     throw new StoreIsReadOnlyError({ storeName: this.storeName, method: 'delete' });
   }

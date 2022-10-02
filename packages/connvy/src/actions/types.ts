@@ -17,7 +17,7 @@ export type ActionIsAsync<TAction extends Action> = TAction extends Action<infer
 export interface ActionState {
   state: ActionStateState;
   actionName: string;
-  error: null | unknown;
+  error?: null | unknown;
 }
 
 export type ActionStateState = 'IDLE' | 'ONGOING' | 'ERROR' | 'COMPLETED';

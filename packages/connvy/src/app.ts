@@ -1,13 +1,14 @@
 import type { PublicStoreInstanceAPI, ReadonlyStoreAPI, Store, StoreInstance, StoreInstanceOf } from './stores/types';
 import { ReadOnlyStoreInstanceImpl } from './stores/readOnlyStoreInstance';
 import type { Selector } from './selectors/types';
-import type { Action, ActionIsAsync } from './actions/types';
+import type { Action, ActionIsAsync, ActionState } from './actions/types';
 import {
   AttemptingToWriteFromSelectorError,
   OngoingActionError,
   SelectorCantBeAsyncError,
   StoreIsReadOnlyError,
 } from './errors';
+import { actionStateStore } from './actions/actionStateStore';
 
 export class ConnvyApp {
   private readonly storeInstances = new Map<Store, StoreInstance>();
@@ -26,15 +27,7 @@ export class ConnvyApp {
   }
 
   select<TReturnValue>(selector: Selector<TReturnValue>): [result: TReturnValue | null, error: unknown | null] {
-    const stores: Record<string, ReadonlyStoreAPI> = {};
-
-    for (const [key, store] of Object.entries(selector.stores)) {
-      const readonlyStoreInstance = this.getOrCreateStoreInstance(store).clone({
-        as: () => new ReadOnlyStoreInstanceImpl(store.name, store.schema),
-      });
-
-      stores[key] = readonlyStoreInstance;
-    }
+    const stores = this.collectStoreInstanceAsReadOnly(selector.stores);
 
     let result: TReturnValue | null = null,
       error: unknown | null = null;
@@ -73,11 +66,15 @@ export class ConnvyApp {
     }
 
     this.ongoingAction = action;
+    this.updateActionState({ state: 'ONGOING', actionName: action.name, error: null });
 
-    return this.runSyncOrAsyncAction(action, (err) => {
+    return this.runSyncOrAsyncAction(action, (error) => {
       this.ongoingAction = null;
-      if (err) {
-        throw err;
+      if (error) {
+        this.updateActionState({ state: 'ERROR', actionName: action.name, error });
+        throw error;
+      } else {
+        this.updateActionState({ state: 'COMPLETED', actionName: action.name, error: null });
       }
     });
   }
@@ -86,12 +83,7 @@ export class ConnvyApp {
     action: TAction,
     andThen: (err?: unknown | null) => void
   ): ActionIsAsync<TAction> {
-    const stores: Record<string, PublicStoreInstanceAPI> = {};
-
-    for (const [key, store] of Object.entries(action.stores)) {
-      const readonlyStoreInstance = this.getOrCreateStoreInstance(store);
-      stores[key] = readonlyStoreInstance;
-    }
+    const stores: Record<string, PublicStoreInstanceAPI> = this.collectStoreInstance(action.stores);
 
     let actionResult: void | Promise<void>;
 
@@ -107,6 +99,40 @@ export class ConnvyApp {
     } else {
       andThen();
       return undefined as ActionIsAsync<TAction>;
+    }
+  }
+
+  private collectStoreInstance(stores: Record<string, Store>): Record<string, PublicStoreInstanceAPI> {
+    const storeInstances: Record<string, PublicStoreInstanceAPI> = {};
+
+    for (const [key, store] of Object.entries(stores)) {
+      const readonlyStoreInstance = this.getOrCreateStoreInstance(store);
+      storeInstances[key] = readonlyStoreInstance;
+    }
+
+    return storeInstances;
+  }
+
+  private collectStoreInstanceAsReadOnly(stores: Record<string, Store>): Record<string, ReadonlyStoreAPI> {
+    const storeInstances: Record<string, ReadonlyStoreAPI> = {};
+
+    for (const [key, store] of Object.entries(stores)) {
+      const readonlyStoreInstance = this.getOrCreateStoreInstance(store).clone({
+        as: () => new ReadOnlyStoreInstanceImpl(store.name, store.schema),
+      });
+      storeInstances[key] = readonlyStoreInstance;
+    }
+
+    return storeInstances;
+  }
+
+  private updateActionState(actionState: ActionState) {
+    const actionStates = this.getOrCreateStoreInstance(actionStateStore);
+
+    try {
+      actionStates.replace(0, actionState);
+    } catch (err) {
+      actionStates.create(actionState);
     }
   }
 }
