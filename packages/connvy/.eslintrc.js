@@ -17,5 +17,6 @@ module.exports = {
   plugins: ['react', '@typescript-eslint', 'prettier'],
   rules: {
     'prettier/prettier': ['error', { singleQuote: true, printWidth: 120 }],
+    'no-empty-pattern': ['off'],
   },
 };

@@ -386,36 +386,323 @@ describe('Connvy Actions', () => {
       expect(component.baseElement.textContent).toContain('"error":null');
     });
 
-    it.todo('should return the COMPLETED state of the last action that was run');
+    it('should return the COMPLETED state of the last action that was run', () => {
+      const createTodoForMe = createAction('createTodoForMe', { todosStore }, ({ todosStore }, title: string) => {
+        todosStore.create({ title, owner: 'me', checked: false });
+      });
 
-    it.todo('should return the ERROR state of the last action that was run, if it failed');
+      const Component = () => {
+        const actions = useActions();
+        const actionState = useActionState();
 
-    describe('While focusing on a specific action (using "useActionState(specificAction)")', () => {
-      it.todo("should return the IDLE state if it's not the last action that was run");
+        const runRoutine = () => {
+          actions.run(createTodoForMe('Hello, world!'));
+        };
 
-      it.todo("should return the ONGOING state ONLY if it's specifically the currently running action");
+        return (
+          <div>
+            {JSON.stringify(actionState)}
+            <br />
+            <button onClick={runRoutine}>Run Routine</button>
+          </div>
+        );
+      };
 
-      it.todo(
-        'should return the COMPLETED state if it was the last action that was run, and it was completed successfully'
+      const component = render(
+        <ConnvyProvider>
+          <Component />
+        </ConnvyProvider>
       );
 
-      it.todo('should return the ERROR state if it was the last action that was run, and it failed');
+      act(() => {
+        fireEvent.click(component.getByText('Run Routine'));
+      });
+
+      expect(component.baseElement.textContent).toContain('"state":"COMPLETED"');
+      expect(component.baseElement.textContent).toContain('"actionName":"createTodoForMe"');
+      expect(component.baseElement.textContent).toContain('"error":null');
+    });
+
+    it('should return the ERROR state of the last action that was run, if it failed', () => {
+      const iThrow = createAction('iThrow', {}, () => {
+        throw new Error('Oh no I threw!');
+      });
+
+      const Component = () => {
+        const actions = useActions();
+        const actionState = useActionState();
+
+        const runRoutine = () => {
+          try {
+            actions.run(iThrow());
+          } catch (err) {
+            // do nothing
+          }
+        };
+
+        return (
+          <div>
+            state:{actionState.state}
+            actionName:{actionState.actionName}
+            error:{(actionState.error as Error)?.message}
+            <br />
+            <button onClick={runRoutine}>Run Routine</button>
+          </div>
+        );
+      };
+
+      const component = render(
+        <ConnvyProvider>
+          <Component />
+        </ConnvyProvider>
+      );
+
+      act(() => {
+        fireEvent.click(component.getByText('Run Routine'));
+      });
+
+      expect(component.baseElement.textContent).toContain('state:ERROR');
+      expect(component.baseElement.textContent).toContain('actionName:iThrow');
+      expect(component.baseElement.textContent).toContain('error:Oh no I threw!');
+    });
+
+    describe('While focusing on a specific action (using "useActionState(specificAction)")', () => {
+      it("should return the IDLE state if it's not the last action that was run", () => {
+        const action1 = createAction('action1', {}, ({}) => {});
+        const action2 = createAction('action2', {}, ({}) => {});
+
+        const Component = () => {
+          const actions = useActions();
+          const actionState = useActionState(action1);
+
+          const runRoutine = () => {
+            actions.run(action1());
+            actions.run(action2());
+          };
+
+          return (
+            <div>
+              {JSON.stringify(actionState)}
+              <br />
+              <button onClick={runRoutine}>Run Routine</button>
+            </div>
+          );
+        };
+
+        const component = render(
+          <ConnvyProvider>
+            <Component />
+          </ConnvyProvider>
+        );
+
+        act(() => {
+          fireEvent.click(component.getByText('Run Routine'));
+        });
+
+        expect(component.baseElement.textContent).toContain('"state":"IDLE"');
+        expect(component.baseElement.textContent).toContain('"actionName":""');
+        expect(component.baseElement.textContent).toContain('"error":null');
+      });
+
+      it("should return the ONGOING state ONLY if it's specifically the currently running action", () => {
+        const action1 = createAction('action1', {}, ({}) => new Promise<void>((res) => setTimeout(res, 500)));
+        afterThis(() => waitForAsync());
+
+        const Component = () => {
+          const actions = useActions();
+          const actionState = useActionState(action1);
+
+          const runRoutine = () => {
+            actions.run(action1());
+          };
+
+          return (
+            <div>
+              {JSON.stringify(actionState)}
+              <br />
+              <button onClick={runRoutine}>Run Routine</button>
+            </div>
+          );
+        };
+
+        const component = render(
+          <ConnvyProvider>
+            <Component />
+          </ConnvyProvider>
+        );
+
+        act(() => {
+          fireEvent.click(component.getByText('Run Routine'));
+        });
+
+        expect(component.baseElement.textContent).toContain('"state":"ONGOING"');
+        expect(component.baseElement.textContent).toContain('"actionName":"action1"');
+        expect(component.baseElement.textContent).toContain('"error":null');
+      });
+
+      it("should not return the ONGOING state if the currently running action isn't the specified one", () => {
+        const action1 = createAction('action1', {}, ({}) => new Promise<void>((res) => setTimeout(res, 500)));
+        const action2 = createAction('action2', {}, ({}) => {});
+        afterThis(() => waitForAsync());
+
+        const Component = () => {
+          const actions = useActions();
+          const actionState = useActionState(action2);
+
+          const runRoutine = () => {
+            actions.run(action2());
+            actions.run(action1());
+          };
+
+          return (
+            <div>
+              {JSON.stringify(actionState)}
+              <br />
+              <button onClick={runRoutine}>Run Routine</button>
+            </div>
+          );
+        };
+
+        const component = render(
+          <ConnvyProvider>
+            <Component />
+          </ConnvyProvider>
+        );
+
+        act(() => {
+          fireEvent.click(component.getByText('Run Routine'));
+        });
+
+        expect(component.baseElement.textContent).toContain('"state":"IDLE"');
+        expect(component.baseElement.textContent).toContain('"actionName":""');
+        expect(component.baseElement.textContent).toContain('"error":null');
+      });
     });
 
     describe('While focusing on a set of actions (using "useActionState([specificAction1, specificAction2])")', () => {
-      it.todo('should return the IDLE state if non of the actions is the last one to run');
+      it('should return the IDLE state if non of the actions is the last one to run', () => {
+        const watchedAction1 = createAction('watchedAction1', {}, ({}) => {});
+        const watchedAction2 = createAction('watchedAction2', {}, ({}) => {});
+        const notWatchedAction = createAction('notWatchedAction', {}, ({}) => {});
 
-      it.todo(
-        'should return the ONGOING for any of the specified actions, if one of them is the currently running action'
-      );
+        const Component = () => {
+          const actions = useActions();
+          const actionState = useActionState([watchedAction1, watchedAction2]);
 
-      it.todo(
-        'should return the COMPLETED state for any of the specified actions, if one of them was the last to run, and has completed successfully'
-      );
+          const runRoutine = () => {
+            actions.run(watchedAction1());
+            actions.run(watchedAction2());
+            actions.run(notWatchedAction());
+          };
 
-      it.todo(
-        'should return the ERROR state for any of the specified actions, if one of them was the last to run, and it failed'
-      );
+          return (
+            <div>
+              {JSON.stringify(actionState)}
+              <br />
+              <button onClick={runRoutine}>Run Routine</button>
+            </div>
+          );
+        };
+
+        const component = render(
+          <ConnvyProvider>
+            <Component />
+          </ConnvyProvider>
+        );
+
+        act(() => {
+          fireEvent.click(component.getByText('Run Routine'));
+        });
+
+        expect(component.baseElement.textContent).toContain('"state":"IDLE"');
+        expect(component.baseElement.textContent).toContain('"actionName":""');
+        expect(component.baseElement.textContent).toContain('"error":null');
+      });
+
+      it('should return the ONGOING for any of the specified actions, if one of them is the currently running action', () => {
+        const watchedAction1 = createAction(
+          'watchedAction1',
+          {},
+          ({}) => new Promise<void>((res) => setTimeout(res, 500))
+        );
+        const watchedAction2 = createAction('watchedAction2', {}, ({}) => {});
+        afterThis(() => waitForAsync());
+
+        const Component = () => {
+          const actions = useActions();
+          const actionState = useActionState([watchedAction1, watchedAction2]);
+
+          const runRoutine = () => {
+            actions.run(watchedAction1());
+          };
+
+          return (
+            <div>
+              {JSON.stringify(actionState)}
+              <br />
+              <button onClick={runRoutine}>Run Routine</button>
+            </div>
+          );
+        };
+
+        const component = render(
+          <ConnvyProvider>
+            <Component />
+          </ConnvyProvider>
+        );
+
+        act(() => {
+          fireEvent.click(component.getByText('Run Routine'));
+        });
+
+        expect(component.baseElement.textContent).toContain('"state":"ONGOING"');
+        expect(component.baseElement.textContent).toContain('"actionName":"watchedAction1"');
+        expect(component.baseElement.textContent).toContain('"error":null');
+      });
+
+      it('should not return the ONGOING state, if none of them is the currently running action', () => {
+        const watchedAction1 = createAction('watchedAction1', {}, ({}) => {});
+        const watchedAction2 = createAction('watchedAction2', {}, ({}) => {});
+        const notWatchedAction = createAction(
+          'notWatchedAction',
+          {},
+          ({}) => new Promise<void>((res) => setTimeout(res, 500))
+        );
+        afterThis(() => waitForAsync());
+
+        const Component = () => {
+          const actions = useActions();
+          const actionState = useActionState([watchedAction1, watchedAction2]);
+
+          const runRoutine = () => {
+            actions.run(watchedAction1());
+            actions.run(watchedAction2());
+            actions.run(notWatchedAction());
+          };
+
+          return (
+            <div>
+              {JSON.stringify(actionState)}
+              <br />
+              <button onClick={runRoutine}>Run Routine</button>
+            </div>
+          );
+        };
+
+        const component = render(
+          <ConnvyProvider>
+            <Component />
+          </ConnvyProvider>
+        );
+
+        act(() => {
+          fireEvent.click(component.getByText('Run Routine'));
+        });
+
+        expect(component.baseElement.textContent).toContain('"state":"IDLE"');
+        expect(component.baseElement.textContent).toContain('"actionName":""');
+        expect(component.baseElement.textContent).toContain('"error":null');
+      });
     });
   });
 
