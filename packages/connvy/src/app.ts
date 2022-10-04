@@ -1,14 +1,14 @@
 import type { PublicStoreInstanceAPI, ReadonlyStoreAPI, Store, StoreInstance, StoreInstanceOf } from './stores/types';
 import { ReadOnlyStoreInstanceImpl } from './stores/readOnlyStoreInstance';
 import type { Selector } from './selectors/types';
-import type { Action, ActionIsAsync, ActionState } from './actions/types';
+import type { Action, ActionFactory, ActionIsAsync, ActionState } from './actions/types';
+import { actionStateStore } from './actions/actionStateStore';
 import {
   AttemptingToWriteFromSelectorError,
   OngoingActionError,
   SelectorCantBeAsyncError,
   StoreIsReadOnlyError,
 } from './errors';
-import { actionStateStore } from './actions/actionStateStore';
 
 export class ConnvyApp {
   private readonly storeInstances = new Map<Store, StoreInstance>();
@@ -69,6 +69,10 @@ export class ConnvyApp {
     this.updateActionState({ state: 'ONGOING', actionName: action.name, error: null });
 
     return this.runSyncOrAsyncAction(action, (error) => {
+      if (this.ongoingAction !== action) {
+        return;
+      }
+
       this.ongoingAction = null;
       if (error) {
         this.updateActionState({ state: 'ERROR', actionName: action.name, error });
@@ -77,6 +81,13 @@ export class ConnvyApp {
         this.updateActionState({ state: 'COMPLETED', actionName: action.name, error: null });
       }
     });
+  }
+
+  cancelAction({ onlyIf = () => true }: { onlyIf?: (actionName: string) => boolean } = {}) {
+    if (this.ongoingAction && onlyIf(this.ongoingAction.name)) {
+      this.updateActionState({ state: 'CANCELED', actionName: this.ongoingAction.name, error: null });
+      this.ongoingAction = null;
+    }
   }
 
   private runSyncOrAsyncAction<TAction extends Action>(

@@ -707,20 +707,323 @@ describe('Connvy Actions', () => {
   });
 
   describe('Canceling Actions', () => {
-    it.todo('should let you cancel an ongoing action using the "cancel" modifier');
+    it('should let you cancel an ongoing action using the "cancel" modifier', () => {
+      afterThis(() => waitForAsync(1000));
 
-    it.todo('should let you chain and run another action after cancelling the current one');
+      const waitSeconds = createAction('waitSeconds', {}, async ({}, seconds: number) => {
+        await new Promise((res) => setTimeout(res, seconds * 1000));
+      });
+
+      const Component = () => {
+        const actions = useActions();
+        const actionState = useActionState();
+
+        const runRoutine = () => {
+          actions.run(waitSeconds(1));
+          actions.cancel();
+        };
+
+        return (
+          <div>
+            {JSON.stringify(actionState)}
+            <br />
+            <button onClick={runRoutine}>Run Routine</button>
+          </div>
+        );
+      };
+
+      const component = render(
+        <ConnvyProvider>
+          <Component />
+        </ConnvyProvider>
+      );
+
+      act(() => {
+        fireEvent.click(component.getByText('Run Routine'));
+      });
+
+      expect(component.baseElement.textContent).toContain('"state":"CANCELED"');
+      expect(component.baseElement.textContent).toContain('"actionName":"waitSeconds"');
+      expect(component.baseElement.textContent).toContain('"error":null');
+    });
+
+    it('should let you chain and run another action after cancelling the current one', () => {
+      afterThis(() => waitForAsync(1000));
+
+      const waitSeconds = createAction('waitSeconds', {}, async ({}, seconds: number) => {
+        await new Promise((res) => setTimeout(res, seconds * 1000));
+      });
+      const anotherAction = createAction('anotherAction', {}, ({}) => {});
+
+      const Component = () => {
+        const actions = useActions();
+        const actionState = useActionState();
+
+        const runRoutine = () => {
+          actions.run(waitSeconds(1));
+          actions.cancel().run(anotherAction());
+        };
+
+        return (
+          <div>
+            {JSON.stringify(actionState)}
+            <br />
+            <button onClick={runRoutine}>Run Routine</button>
+          </div>
+        );
+      };
+
+      const component = render(
+        <ConnvyProvider>
+          <Component />
+        </ConnvyProvider>
+      );
+
+      act(() => {
+        fireEvent.click(component.getByText('Run Routine'));
+      });
+
+      expect(component.baseElement.textContent).toContain('"state":"COMPLETED"');
+      expect(component.baseElement.textContent).toContain('"actionName":"anotherAction"');
+      expect(component.baseElement.textContent).toContain('"error":null');
+    });
+
+    it('should do nothing if there is no action to cancel', () => {
+      const Component = () => {
+        const actions = useActions();
+        const actionState = useActionState();
+
+        const runRoutine = () => {
+          actions.cancel();
+        };
+
+        return (
+          <div>
+            {JSON.stringify(actionState)}
+            <br />
+            <button onClick={runRoutine}>Run Routine</button>
+          </div>
+        );
+      };
+
+      const component = render(
+        <ConnvyProvider>
+          <Component />
+        </ConnvyProvider>
+      );
+
+      act(() => {
+        fireEvent.click(component.getByText('Run Routine'));
+      });
+
+      expect(component.baseElement.textContent).toContain('"state":"IDLE"');
+      expect(component.baseElement.textContent).toContain('"actionName":""');
+      expect(component.baseElement.textContent).toContain('"error":null');
+    });
+
+    it('should prevent the canceled action from registering as "completed" (EDGE CASE)', async () => {
+      const waitSeconds = createAction('waitSeconds', {}, async ({}, seconds: number) => {
+        await new Promise((res) => setTimeout(res, seconds * 1000));
+      });
+
+      const Component = () => {
+        const actions = useActions();
+        const actionState = useActionState();
+
+        const runRoutine = () => {
+          actions.run(waitSeconds(1));
+          actions.cancel();
+        };
+
+        return (
+          <div>
+            {JSON.stringify(actionState)}
+            <br />
+            <button onClick={runRoutine}>Run Routine</button>
+          </div>
+        );
+      };
+
+      const component = render(
+        <ConnvyProvider>
+          <Component />
+        </ConnvyProvider>
+      );
+
+      await act(async () => {
+        fireEvent.click(component.getByText('Run Routine'));
+        await waitForAsync(1000);
+      });
+
+      expect(component.baseElement.textContent).toContain('"state":"CANCELED"');
+      expect(component.baseElement.textContent).toContain('"actionName":"waitSeconds"');
+      expect(component.baseElement.textContent).toContain('"error":null');
+    });
 
     describe('Cancelling a specific action (using "actions.cancel(specificAction)")', () => {
-      it.todo("should cancel it if it's running");
+      it("should cancel it if it's running", () => {
+        afterThis(() => waitForAsync(1000));
 
-      it.todo('should not cancel any other action');
+        const waitSeconds = createAction('waitSeconds', {}, async ({}, seconds: number) => {
+          await new Promise((res) => setTimeout(res, seconds * 1000));
+        });
+
+        const Component = () => {
+          const actions = useActions();
+          const actionState = useActionState();
+
+          const runRoutine = () => {
+            actions.run(waitSeconds(1));
+            actions.cancel(waitSeconds);
+          };
+
+          return (
+            <div>
+              {JSON.stringify(actionState)}
+              <br />
+              <button onClick={runRoutine}>Run Routine</button>
+            </div>
+          );
+        };
+
+        const component = render(
+          <ConnvyProvider>
+            <Component />
+          </ConnvyProvider>
+        );
+
+        act(() => {
+          fireEvent.click(component.getByText('Run Routine'));
+        });
+
+        expect(component.baseElement.textContent).toContain('"state":"CANCELED"');
+        expect(component.baseElement.textContent).toContain('"actionName":"waitSeconds"');
+        expect(component.baseElement.textContent).toContain('"error":null');
+      });
+
+      it('should not cancel any other action', async () => {
+        const actionToCancel = createAction('actionToCancel', {}, ({}) => {});
+        const waitSeconds = createAction('waitSeconds', {}, async ({}, seconds: number) => {
+          await new Promise((res) => setTimeout(res, seconds * 1000));
+        });
+
+        const Component = () => {
+          const actions = useActions();
+          const actionState = useActionState();
+
+          const runRoutine = () => {
+            actions.run(waitSeconds(1));
+            actions.cancel(actionToCancel);
+          };
+
+          return (
+            <div>
+              {JSON.stringify(actionState)}
+              <br />
+              <button onClick={runRoutine}>Run Routine</button>
+            </div>
+          );
+        };
+
+        const component = render(
+          <ConnvyProvider>
+            <Component />
+          </ConnvyProvider>
+        );
+
+        await act(async () => {
+          fireEvent.click(component.getByText('Run Routine'));
+          await waitForAsync(1000);
+        });
+
+        expect(component.baseElement.textContent).toContain('"state":"COMPLETED"');
+        expect(component.baseElement.textContent).toContain('"actionName":"waitSeconds"');
+        expect(component.baseElement.textContent).toContain('"error":null');
+      });
     });
 
     describe('Cancelling a given set of actions (using "actions.cancel([specificAction1, specificAction2])")', () => {
-      it.todo("should cancel any of the given actions it if it's running");
+      it("should cancel any of the given actions it if it's running", () => {
+        afterThis(() => waitForAsync(1000));
 
-      it.todo('should not cancel any other action that is not in the set');
+        const waitSeconds = createAction('waitSeconds', {}, async ({}, seconds: number) => {
+          await new Promise((res) => setTimeout(res, seconds * 1000));
+        });
+        const anotherAction = createAction('anotherAction', {}, ({}) => {});
+
+        const Component = () => {
+          const actions = useActions();
+          const actionState = useActionState();
+
+          const runRoutine = () => {
+            actions.run(waitSeconds(1));
+            actions.cancel([waitSeconds, anotherAction]);
+          };
+
+          return (
+            <div>
+              {JSON.stringify(actionState)}
+              <br />
+              <button onClick={runRoutine}>Run Routine</button>
+            </div>
+          );
+        };
+
+        const component = render(
+          <ConnvyProvider>
+            <Component />
+          </ConnvyProvider>
+        );
+
+        act(() => {
+          fireEvent.click(component.getByText('Run Routine'));
+        });
+
+        expect(component.baseElement.textContent).toContain('"state":"CANCELED"');
+        expect(component.baseElement.textContent).toContain('"actionName":"waitSeconds"');
+        expect(component.baseElement.textContent).toContain('"error":null');
+      });
+
+      it('should not cancel any other action that is not in the set', async () => {
+        const waitSeconds = createAction('waitSeconds', {}, async ({}, seconds: number) => {
+          await new Promise((res) => setTimeout(res, seconds * 1000));
+        });
+        const anotherAction1 = createAction('anotherAction1', {}, ({}) => {});
+        const anotherAction2 = createAction('anotherAction2', {}, ({}) => {});
+
+        const Component = () => {
+          const actions = useActions();
+          const actionState = useActionState();
+
+          const runRoutine = () => {
+            actions.run(waitSeconds(1));
+            actions.cancel([anotherAction1, anotherAction2]);
+          };
+
+          return (
+            <div>
+              {JSON.stringify(actionState)}
+              <br />
+              <button onClick={runRoutine}>Run Routine</button>
+            </div>
+          );
+        };
+
+        const component = render(
+          <ConnvyProvider>
+            <Component />
+          </ConnvyProvider>
+        );
+
+        await act(async () => {
+          fireEvent.click(component.getByText('Run Routine'));
+          await waitForAsync(1000);
+        });
+
+        expect(component.baseElement.textContent).toContain('"state":"COMPLETED"');
+        expect(component.baseElement.textContent).toContain('"actionName":"waitSeconds"');
+        expect(component.baseElement.textContent).toContain('"error":null');
+      });
     });
   });
 

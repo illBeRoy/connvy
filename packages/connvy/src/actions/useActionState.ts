@@ -2,9 +2,7 @@ import { useStore } from '../stores/useStore';
 import { actionStateStore } from './actionStateStore';
 import type { ActionFactory, ActionState } from './types';
 
-export const useActionState = (
-  actionOrActionsToWatch?: ActionFactory<any, any> | ActionFactory<any, any>[]
-): ActionState => {
+export const useActionState = (actionOrActionsToWatch?: ActionFactory | ActionFactory[]): ActionState => {
   const watch: 'ALL' | string[] =
     actionOrActionsToWatch instanceof Array
       ? actionOrActionsToWatch.map((action) => action.actionName)

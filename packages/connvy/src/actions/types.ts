@@ -1,6 +1,6 @@
 import type { Store, PublicStoreInstanceAPI } from '../stores/types';
 
-export interface ActionFactory<TParams extends unknown[], TAsync extends void | Promise<void>> {
+export interface ActionFactory<TParams extends unknown[] = any[], TAsync extends void | Promise<void> = void> {
   (...params: TParams): Action<TAsync>;
   actionName: string;
 }
@@ -20,4 +20,4 @@ export interface ActionState {
   error?: null | unknown;
 }
 
-export type ActionStateState = 'IDLE' | 'ONGOING' | 'ERROR' | 'COMPLETED';
+export type ActionStateState = 'IDLE' | 'ONGOING' | 'ERROR' | 'COMPLETED' | 'CANCELED';
