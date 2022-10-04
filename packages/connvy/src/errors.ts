@@ -79,3 +79,12 @@ export class OngoingActionError extends ConnvyError {
     return `${action.name}(${formattedActionParams})`;
   }
 }
+
+export class StoreIsLockedError extends ConnvyError {
+  constructor({ storeName }: { storeName: string }) {
+    super(
+      `You cannot write into the the store "${storeName}", as it is locked and being used somewhere else.` +
+        'In order to avoid race conditions, we suggest wrapping your write operations with Actions.'
+    );
+  }
+}

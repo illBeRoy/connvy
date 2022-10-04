@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
 import React, { useState } from 'react';
 import { act, fireEvent, render } from '@testing-library/react';
 import { afterThis } from 'jest-after-this';
@@ -1028,18 +1029,232 @@ describe('Connvy Actions', () => {
   });
 
   describe('Store State Isolation', () => {
-    it.todo("should not reflect any changes made to the store outside of the action, while it's still ongoing");
+    it("should not reflect any changes made to the store outside of the action, while it's still ongoing", async () => {
+      const createAndThenWait = createAction('createAndThenWait', { todosStore }, async ({ todosStore }) => {
+        todosStore.create({ title: 'I was created', checked: true, owner: 'me' });
+        await new Promise((res) => setTimeout(res, 1000));
+      });
 
-    it.todo('should not let anyone outside of the action to write to the affected stores');
+      const Component = () => {
+        const todos = useStore(todosStore);
+        const actions = useActions();
 
-    it.todo('should let other routines to write to unaffected stores (ones not required by the action)');
+        const runRoutine = async () => {
+          await actions.run(createAndThenWait());
+        };
+
+        return (
+          <div>
+            Todos count: {todos.list().length}
+            <button onClick={runRoutine}>Run Routine</button>
+          </div>
+        );
+      };
+
+      const component = render(
+        <ConnvyProvider>
+          <Component />
+        </ConnvyProvider>
+      );
+
+      await act(async () => {
+        fireEvent.click(component.getByText('Run Routine'));
+        await waitForAsync(500);
+      });
+
+      expect(component.baseElement.textContent).toContain('Todos count: 0');
+
+      await act(async () => {
+        await waitForAsync(600);
+      });
+
+      expect(component.baseElement.textContent).toContain('Todos count: 1');
+    });
+
+    it('should not let anyone outside of the action to write to the affected stores', async () => {
+      afterThis(() => waitForAsync(1000));
+
+      const createAndThenWait = createAction('createAndThenWait', { todosStore }, async ({ todosStore }) => {
+        todosStore.create({ title: 'I was created', checked: true, owner: 'me' });
+        await new Promise((res) => setTimeout(res, 1000));
+      });
+
+      const Component = () => {
+        const todos = useStore(todosStore);
+        const actions = useActions();
+        const [error, setError] = useState('');
+
+        const runRoutine = async () => {
+          actions.run(createAndThenWait());
+          try {
+            todos.create({ title: 'I should not be created', owner: 'No one', checked: false });
+          } catch (err) {
+            setError(`${err}`);
+          }
+        };
+
+        return (
+          <div>
+            Todos count: {todos.list().length}
+            Error: {error}
+            <button onClick={runRoutine}>Run Routine</button>
+          </div>
+        );
+      };
+
+      const component = render(
+        <ConnvyProvider>
+          <Component />
+        </ConnvyProvider>
+      );
+
+      act(() => {
+        fireEvent.click(component.getByText('Run Routine'));
+      });
+
+      expect(component.baseElement.textContent).toContain('Todos count: 0');
+      expect(component.baseElement.textContent).toContain(
+        'You cannot write into the the store "todos", as it is locked and being used somewhere else.' +
+          'In order to avoid race conditions, we suggest wrapping your write operations with Actions.'
+      );
+    });
+
+    it('should let other routines to write to unaffected stores (ones not required by the action)', async () => {
+      afterThis(() => waitForAsync(1000));
+
+      const createAndThenWait = createAction('createAndThenWait', { todosStore }, async ({ todosStore }) => {
+        todosStore.create({ title: 'I was created', checked: true, owner: 'me' });
+        await new Promise((res) => setTimeout(res, 1000));
+      });
+
+      const bagelsStore = createStore('bagels', { schema: ($) => ({ fresh: $.boolean() }) });
+
+      const Component = () => {
+        const bagels = useStore(bagelsStore);
+        const actions = useActions();
+        const [error, setError] = useState('No Error');
+
+        const runRoutine = () => {
+          actions.run(createAndThenWait());
+          try {
+            bagels.create({ fresh: true });
+          } catch (err) {
+            setError(`${err}`);
+          }
+        };
+
+        return (
+          <div>
+            Bagels count: {bagels.list().length}
+            Error: {error}
+            <button onClick={runRoutine}>Run Routine</button>
+          </div>
+        );
+      };
+
+      const component = render(
+        <ConnvyProvider>
+          <Component />
+        </ConnvyProvider>
+      );
+
+      await act(async () => {
+        fireEvent.click(component.getByText('Run Routine'));
+      });
+
+      expect(component.baseElement.textContent).toContain('Bagels count: 1');
+      expect(component.baseElement.textContent).toContain('Error: No Error');
+    });
 
     describe('When action has failed', () => {
-      it.todo('should not commit any of the changes it made to the stores');
+      it('should not commit any of the changes it made to the stores', () => {
+        const createTodoThenFail = createAction(
+          'createTodoThenFail',
+          { todosStore },
+          ({ todosStore }, title: string) => {
+            todosStore.create({ title, owner: 'me', checked: false });
+            throw new Error('Oh no I threw!');
+          }
+        );
+
+        const Component = () => {
+          const todos = useStore(todosStore);
+          const actions = useActions();
+          const actionState = useActionState();
+
+          const runRoutine = () => {
+            try {
+              actions.run(createTodoThenFail('Not gonna happen'));
+            } catch (err) {
+              // do nothing
+            }
+          };
+
+          return (
+            <div>
+              Action State: {actionState.state}
+              Todos Count: {todos.list().length}
+              <button onClick={runRoutine}>Run Routine</button>
+            </div>
+          );
+        };
+
+        const component = render(
+          <ConnvyProvider>
+            <Component />
+          </ConnvyProvider>
+        );
+
+        act(() => {
+          fireEvent.click(component.getByText('Run Routine'));
+        });
+
+        expect(component.baseElement.textContent).toContain('Action State: ERROR');
+        expect(component.baseElement.textContent).toContain('Todos Count: 0');
+      });
     });
 
     describe('When action was cancelled', () => {
-      it.todo('should not commit any of the changes it made to the stores');
+      it('should not commit any of the changes it made to the stores', async () => {
+        const createAndThenWait = createAction('createAndThenWait', { todosStore }, async ({ todosStore }) => {
+          todosStore.create({ title: 'I was created', checked: true, owner: 'me' });
+          await new Promise((res) => setTimeout(res, 500));
+        });
+
+        const Component = () => {
+          const todos = useStore(todosStore);
+          const actions = useActions();
+          const actionState = useActionState();
+
+          const runRoutine = async () => {
+            actions.run(createAndThenWait());
+            await waitForAsync(100);
+            actions.cancel();
+          };
+
+          return (
+            <div>
+              Action State: {actionState.state}
+              Todos Count: {todos.list().length}
+              <button onClick={runRoutine}>Run Routine</button>
+            </div>
+          );
+        };
+
+        const component = render(
+          <ConnvyProvider>
+            <Component />
+          </ConnvyProvider>
+        );
+
+        await act(async () => {
+          fireEvent.click(component.getByText('Run Routine'));
+          await waitForAsync(600);
+        });
+
+        expect(component.baseElement.textContent).toContain('Action State: CANCELED');
+        expect(component.baseElement.textContent).toContain('Todos Count: 0');
+      });
     });
   });
 });

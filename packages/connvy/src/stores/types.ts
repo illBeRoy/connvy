@@ -17,6 +17,8 @@ export interface StoreInstance<TEntity = unknown> {
   deleteAllWhere(matcher: (item: TEntity) => boolean): number;
   clone(opts?: { as?: () => StoreInstance<TEntity> }): StoreInstance<TEntity>;
   merge(from: StoreInstance<TEntity>): void;
+  lock(): void;
+  unlock(): void;
   on<TEvent extends keyof StoreInstanceEvents>(event: TEvent, cb: StoreInstanceEvents[keyof StoreInstanceEvents]): void;
   off<TEvent extends keyof StoreInstanceEvents>(
     event: TEvent,
@@ -24,7 +26,10 @@ export interface StoreInstance<TEntity = unknown> {
   ): void;
 }
 
-export type PublicStoreInstanceAPI<TEntity = unknown> = Omit<StoreInstance<TEntity>, 'on' | 'off' | 'clone' | 'merge'>;
+export type PublicStoreInstanceAPI<TEntity = unknown> = Omit<
+  StoreInstance<TEntity>,
+  'on' | 'off' | 'clone' | 'merge' | 'lock' | 'unlock'
+>;
 
 export type ReadonlyStoreAPI<TEntity = unknown> = Omit<
   PublicStoreInstanceAPI<TEntity>,
