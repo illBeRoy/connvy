@@ -1,10 +1,22 @@
 {
-  "name": "@connvy/connvy",
-  "packageManager": "yarn@3.2.3",
+  "name": "connvy",
+  "description": "convey connection between state and action",
+  "keywords": [
+    "state management",
+    "react",
+    "state",
+    "crud",
+    "event sourcing"
+  ],
+  "repository": "https://github.com/illBeRoy/connvy",
   "scripts": {
     "test": "jest",
-    "build": "tsc"
+    "build": "tsc",
+    "preRelease": "rm -rf dist && yarn build && yarn test",
+    "release": "np"
   },
+  "packageManager": "yarn@3.2.3",
+  "main": "dist/src/index.js",
   "files": [
     "dist/src"
   ],
@@ -26,6 +38,7 @@
     "jest": "^29.0.3",
     "jest-after-this": "^1.0.2",
     "jest-environment-jsdom": "^29.0.3",
+    "np": "^7.6.2",
     "prettier": "^2.7.1",
     "react": "^18.0.0",
     "react-dom": "^18.2.0",

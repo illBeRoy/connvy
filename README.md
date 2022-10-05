@@ -1,5 +1,5 @@
 # connvy
-**💽 CRUD for the frontend**
+**💽 Convey Connection between State and Action**
 
 - [Getting Started](#getting-started)
   * [Setup your App](#setup-your-app)

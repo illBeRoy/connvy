@@ -1,5 +1,3 @@
-export * from './provider';
-export * from './errors';
 export * from './stores/types';
 export * from './stores/createStore';
 export * from './stores/useStore';
@@ -10,3 +8,6 @@ export * from './actions/types';
 export * from './actions/createAction';
 export * from './actions/useActions';
 export * from './actions/useActionState';
+export * from './provider';
+export * from './errors';
+export * from './app';
