@@ -14,7 +14,11 @@
     "test": "jest",
     "build": "tsc",
     "prerelease": "rm -rf dist && yarn build && yarn test",
-    "release": "np --no-cleanup"
+    "release": "np"
+  },
+  "np": {
+    "yarn": true,
+    "cleanup": false
   },
   "packageManager": "yarn@3.2.3",
   "main": "dist/src/index.js",
