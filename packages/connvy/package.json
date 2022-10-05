@@ -10,12 +10,11 @@
     "event sourcing"
   ],
   "repository": "https://github.com/illBeRoy/connvy",
-  "private": false,
   "scripts": {
     "test": "jest",
     "build": "tsc",
     "prerelease": "rm -rf dist && yarn build && yarn test",
-    "release": "np"
+    "release": "np --no-cleanup"
   },
   "packageManager": "yarn@3.2.3",
   "main": "dist/src/index.js",
