@@ -1,5 +1,6 @@
 {
   "name": "connvy",
+  "version": "1.0.0-alpha1",
   "description": "convey connection between state and action",
   "keywords": [
     "state management",
@@ -12,7 +13,7 @@
   "scripts": {
     "test": "jest",
     "build": "tsc",
-    "preRelease": "rm -rf dist && yarn build && yarn test",
+    "prerelease": "rm -rf dist && yarn build && yarn test",
     "release": "np"
   },
   "packageManager": "yarn@3.2.3",
