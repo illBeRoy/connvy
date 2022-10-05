@@ -10,6 +10,7 @@
     "event sourcing"
   ],
   "repository": "https://github.com/illBeRoy/connvy",
+  "private": false,
   "scripts": {
     "test": "jest",
     "build": "tsc",
