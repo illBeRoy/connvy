@@ -17,7 +17,6 @@
     "release": "np"
   },
   "np": {
-    "yarn": true,
     "cleanup": false
   },
   "packageManager": "yarn@3.2.3",
