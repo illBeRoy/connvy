@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useConnvy } from '../provider';
+import { Store } from '../stores/types';
 import type { Selector } from './types';
 
 export const useSelector = <T>(selector: Selector<T>): [result: T | null, error: unknown | null] => {
@@ -9,7 +10,7 @@ export const useSelector = <T>(selector: Selector<T>): [result: T | null, error:
   const updateMemoizationKey = () => setMemoizationKey(Math.random());
 
   useEffect(function updateMemoizationKeyWhenAnyDependentStoreChanged() {
-    const allStoresForSelector = Object.values(selector.stores);
+    const allStoresForSelector = Object.values(selector.dependencies).filter((dep) => dep.type === 'store') as Store[];
     const allStoreInstances = allStoresForSelector.map((store) => connvy.app.getOrCreateStoreInstance(store));
 
     allStoreInstances.forEach((storeInstance) => {

@@ -1,4 +1,5 @@
-import type { Store, PublicStoreInstanceAPI } from '../stores/types';
+import type { Store, PublicStoreInstanceOf } from '../stores/types';
+import type { Tool, ToolInstance } from '../tools/types';
 
 export interface ActionFactory<TParams extends unknown[] = any[], TAsync extends void | Promise<void> = void> {
   (...params: TParams): Action<TAsync>;
@@ -6,10 +7,11 @@ export interface ActionFactory<TParams extends unknown[] = any[], TAsync extends
 }
 
 export interface Action<TAsync extends void | Promise<void> = void | Promise<void>> {
+  type: 'action';
   name: string;
   params: unknown[];
-  stores: Record<string, Store>;
-  run(stores: Record<string, PublicStoreInstanceAPI>): TAsync;
+  dependencies: ActionDependencies;
+  run(dependencies: ActionDependencyInstances): TAsync;
 }
 
 export type ActionIsAsync<TAction extends Action> = TAction extends Action<infer TAsync> ? TAsync : never;
@@ -21,3 +23,13 @@ export interface ActionState {
 }
 
 export type ActionStateState = 'IDLE' | 'ONGOING' | 'ERROR' | 'COMPLETED' | 'CANCELED';
+
+export type ActionDependencies = Record<string, Store | Tool>;
+
+export type ActionDependencyInstances<TDeps extends ActionDependencies = ActionDependencies> = {
+  [TKey in keyof TDeps]: TDeps[TKey] extends Store
+    ? PublicStoreInstanceOf<TDeps[TKey]>
+    : TDeps[TKey] extends Tool
+    ? ToolInstance<TDeps[TKey]>
+    : unknown;
+};

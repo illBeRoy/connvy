@@ -1,4 +1,5 @@
 export interface Store<TEntity = unknown> {
+  type: 'store';
   name: string;
   schema: SchemaParser<TEntity>;
   create(): StoreInstance<TEntity>;

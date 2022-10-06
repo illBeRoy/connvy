@@ -15,6 +15,7 @@ export const createStore = <TSchema extends z.ZodRawShape>(
   };
 
   return {
+    type: 'store',
     name,
     schema: schemaParser,
     create() {

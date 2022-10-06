@@ -3,6 +3,7 @@ import { ReadOnlyStoreInstanceImpl } from './stores/readOnlyStoreInstance';
 import type { Selector } from './selectors/types';
 import type { Action, ActionIsAsync, ActionState } from './actions/types';
 import { actionStateStore } from './actions/actionStateStore';
+import type { Tool, ToolInstance } from './tools/types';
 import {
   AttemptingToWriteFromSelectorError,
   OngoingActionError,
@@ -12,6 +13,7 @@ import {
 
 export class ConnvyApp {
   private readonly storeInstances = new Map<Store, StoreInstance>();
+  private readonly toolInstances = new Map<Tool, ToolInstance>();
   private ongoingAction: Action | null = null;
 
   getOrCreateStoreInstance<TStore extends Store>(store: TStore): StoreInstanceOf<TStore> {
@@ -26,14 +28,28 @@ export class ConnvyApp {
     }
   }
 
+  getOrCreateToolInstance<TTool extends Tool>(tool: TTool): ToolInstance<TTool> {
+    const toolInstance = this.toolInstances.get(tool);
+
+    if (toolInstance) {
+      return toolInstance as ToolInstance<TTool>;
+    } else {
+      const newToolInstance = tool.create();
+      this.toolInstances.set(tool, newToolInstance);
+      return newToolInstance as ToolInstance<TTool>;
+    }
+  }
+
   select<TReturnValue>(selector: Selector<TReturnValue>): [result: TReturnValue | null, error: unknown | null] {
-    const stores = this.collectStoreInstancesAsReadOnly(selector.stores);
+    const dependencies = this.collectDependencies(selector.dependencies, {
+      cloneStores: { as: (store) => new ReadOnlyStoreInstanceImpl(store.name, store.schema) },
+    });
 
     let result: TReturnValue | null = null,
       error: unknown | null = null;
 
     try {
-      result = selector.select(stores);
+      result = selector.select(dependencies);
     } catch (err) {
       error = err;
     }
@@ -67,23 +83,28 @@ export class ConnvyApp {
 
     this.ongoingAction = action;
     this.updateActionState({ state: 'ONGOING', actionName: action.name, error: null });
-    this.lockStores(Object.values(action.stores));
 
-    const storesInstances = this.collectStoreInstancesAsClones(action.stores);
+    const stores = Object.values(action.dependencies).filter((dep) => dep.type === 'store') as Store[];
 
-    return this.runSyncOrAsyncAction(action, storesInstances, (error) => {
+    this.lockStores(stores);
+
+    const dependencies = this.collectDependencies(action.dependencies, { cloneStores: true });
+
+    return this.runSyncOrAsyncAction(action, dependencies, (error) => {
       if (this.ongoingAction !== action) {
         return;
       }
 
       this.ongoingAction = null;
-      this.unlockStores(Object.values(action.stores));
+      this.unlockStores(Object.values(stores));
       if (error) {
         this.updateActionState({ state: 'ERROR', actionName: action.name, error });
         throw error;
       } else {
-        for (const [key, store] of Object.entries(action.stores)) {
-          this.getOrCreateStoreInstance(store).merge(storesInstances[key]);
+        for (const [key, dependency] of Object.entries(action.dependencies)) {
+          if (dependency.type === 'store') {
+            this.getOrCreateStoreInstance(dependency).merge(dependencies[key] as StoreInstance);
+          }
         }
 
         this.updateActionState({ state: 'COMPLETED', actionName: action.name, error: null });
@@ -100,13 +121,13 @@ export class ConnvyApp {
 
   private runSyncOrAsyncAction<TAction extends Action>(
     action: TAction,
-    stores: Record<string, PublicStoreInstanceAPI>,
+    dependencies: Record<string, PublicStoreInstanceAPI | ToolInstance>,
     andThen: (err?: unknown | null) => void
   ): ActionIsAsync<TAction> {
     let actionResult: void | Promise<void>;
 
     try {
-      actionResult = action.run(stores);
+      actionResult = action.run(dependencies);
     } catch (err) {
       andThen(err);
       return undefined as ActionIsAsync<TAction>;
@@ -120,45 +141,36 @@ export class ConnvyApp {
     }
   }
 
-  private collectStoreInstances(
-    stores: Record<string, Store>,
-    { clone }: { clone?: { as?: (store: Store) => StoreInstance } | true } = {}
-  ): Record<string, StoreInstance> {
-    const storeInstances: Record<string, StoreInstance> = {};
+  private collectDependencies(
+    dependencies: Record<string, Store | Tool>,
+    { cloneStores }: { cloneStores?: { as?: (store: Store) => StoreInstance } | true } = {}
+  ): Record<string, StoreInstance | ToolInstance> {
+    const dependencyInstances: Record<string, StoreInstance | ToolInstance> = {};
 
-    for (const [key, store] of Object.entries(stores)) {
-      const instance = this.getOrCreateStoreInstance(store);
+    for (const [key, dependency] of Object.entries(dependencies)) {
+      if (dependency.type === 'tool') {
+        dependencyInstances[key] = this.getOrCreateToolInstance(dependency);
+        continue;
+      }
 
-      const shouldClone = clone === true;
+      const storeInstance = this.getOrCreateStoreInstance(dependency);
+
+      const shouldClone = cloneStores === true;
       if (shouldClone) {
-        storeInstances[key] = instance.clone();
+        dependencyInstances[key] = storeInstance.clone();
         continue;
       }
 
-      const shouldCloneAs = clone?.as;
+      const shouldCloneAs = cloneStores && typeof cloneStores !== 'boolean' && 'as' in cloneStores;
       if (shouldCloneAs) {
-        storeInstances[key] = instance.clone({ as: () => clone.as!(store) });
+        dependencyInstances[key] = storeInstance.clone({ as: () => cloneStores.as!(dependency) });
         continue;
       }
 
-      storeInstances[key] = instance;
+      dependencyInstances[key] = storeInstance;
     }
 
-    return storeInstances;
-  }
-
-  private collectStoreInstancesAsReadOnly(stores: Record<string, Store>): Record<string, StoreInstance> {
-    return this.collectStoreInstances(stores, {
-      clone: {
-        as: (store) => new ReadOnlyStoreInstanceImpl(store.name, store.schema),
-      },
-    });
-  }
-
-  private collectStoreInstancesAsClones(stores: Record<string, Store>): Record<string, StoreInstance> {
-    return this.collectStoreInstances(stores, {
-      clone: true,
-    });
+    return dependencyInstances;
   }
 
   private updateActionState(actionState: ActionState) {
